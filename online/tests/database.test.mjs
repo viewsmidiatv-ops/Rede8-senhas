@@ -43,7 +43,15 @@ try{
  assert.notEqual(state.queue.counters[0].current,state.queue.counters[1].current);assert.equal(state.queue.tickets.filter(t=>t.status==='serving').length,2);assert.equal(state.queue.tickets.filter(t=>t.status==='serving').every(t=>t.kind==='priority'),true);
  assert.equal(JSON.stringify(state.public).includes('operatorId'),false);assert.equal(JSON.stringify(state.public).includes(op.email),false);
  const persisted=await db.prepare('SELECT revision,payload FROM queue_state WHERE key=1').first();assert.equal(JSON.parse(persisted.payload).tickets.length,6);assert.ok(persisted.revision>=9);
+ const config=structuredClone(state.queue.settings);config.name='Cliente configurado';config.voice.rate=1.1;
+ assert.equal((await request(op,'settings:save',{configVersion:0,settings:config})).status,403);
+ const simultaneous=await Promise.all([request(owner,'settings:save',{configVersion:0,settings:config}),request(visitor,'take',{kind:'normal',requestId:'parallel-with-config'})]);
+ assert.deepEqual(simultaneous.map(r=>r.status),[200,200]);
+ const afterConfig=(await request(owner,'state')).body;
+ assert.equal(afterConfig.queue.settings.name,'Cliente configurado');assert.equal(afterConfig.queue.configVersion,1);assert.equal(afterConfig.queue.tickets.length,7);
+ assert.equal((await request(owner,'settings:save',{configVersion:0,settings:config})).status,409);
+ const savedConfig=await db.prepare('SELECT payload FROM queue_state WHERE key=1').first();assert.equal(JSON.parse(savedConfig.payload).settings.voice.rate,1.1);
  await db.prepare('UPDATE queue_members SET enabled=0 WHERE email=?').bind(op.email).run();assert.equal((await request(op,'complete',{counterId:1})).status,403);
  for(const [origin,expected]of [['https://attacker.test',403],['https://test.local',200]]){const r=await mf.dispatchFetch('https://test.local/test',{method:'POST',body:JSON.stringify({checkOrigin:true,headers:{origin,'content-type':'application/json'}})});assert.equal(r.status,expected);}
- console.log('PASS: D1 persistence, atomic concurrent issuance, idempotency, role binding/revocation, two-counter isolation, public projection and CSRF origin validation.');
+ console.log('PASS: D1 persistence, atomic concurrent issuance, idempotency, role binding/revocation, two-counter isolation, public projection CSRF origin validation, settings persistence and concurrent settings/issuance.');
 }finally{await mf.dispose();}

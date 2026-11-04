@@ -35,4 +35,4 @@ Para um cliente com guichês já cadastrados no banco, mudar os valores iniciais
 
 Editar a base, testar, publicar na Rede8 e marcar a versão aprovada no GitHub. Reaplicar essa versão nos checkouts das instalações preservando `config/instance.json`, `.openai/hosting.json`, variáveis e banco. Cada publicação aplica suas próprias migrações. Não clonar um banco de cliente nem sobrescrever o identificador de hospedagem.
 
-A configuração atual é feita por arquivos. Uma tela administrativa para personalização e os relatórios continuam como evoluções futuras; não estão implementados por esta organização da base.
+Os arquivos definem os padrões iniciais. A personalização da instalação é feita no painel `/configuracoes` e persistida no seu D1; preserve esse banco ao atualizar a base. Logomarcas enviadas ficam no R2 exclusivo da instalação. Relatórios e mídia indoor continuam como etapas futuras.

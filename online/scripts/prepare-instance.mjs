@@ -19,5 +19,5 @@ for(const file of [...new Set(files)]){
 }
 await mkdir(join(dest,'config'),{recursive:true});await mkdir(join(dest,'.openai'),{recursive:true});
 await writeFile(join(dest,'config/instance.json'),JSON.stringify(config,null,2)+'\n');
-await writeFile(join(dest,'.openai/hosting.json'),JSON.stringify({d1:'DB',r2:null},null,2)+'\n');
+await writeFile(join(dest,'.openai/hosting.json'),JSON.stringify({d1:'DB',r2:'BUCKET'},null,2)+'\n');
 console.log(JSON.stringify({prepared:true,instance:config.id,directory:dest,requires:'Register a NEW Site; persist its returned project_id; publish with its own D1. Do not reuse an existing customer Site ID.'}));

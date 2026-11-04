@@ -13,11 +13,11 @@ export async function GET(request:Request){try{
   const members=await database().prepare('SELECT email,role,enabled FROM queue_members ORDER BY email').all();return json({members:members.results});
  }
  const {queue,revision}=await loadQueue();rollDay(queue,Date.now());
- return json({queue:publicQueue(queue),revision,self:{email:actor.email,role:actor.role}});
+ return json({queue:publicQueue(queue),settings:queue.settings,configVersion:queue.configVersion,revision,self:{email:actor.email,role:actor.role}});
 }catch(e){return failure(e);}}
 export async function POST(request:Request){try{
  checkMutationRequest(request);
- const actor=await identity();const text=await request.text();if(text.length>6000)throw new QueueError(413,'Solicitação muito grande.');
+ const actor=await identity();const text=await request.text();if(text.length>64000)throw new QueueError(413,'Solicitação muito grande.');
  let body;try{body=JSON.parse(text);}catch{throw new QueueError(400,'Solicitação inválida.');}
  if(!body||typeof body.action!=='string'||!body.data||Array.isArray(body.data)||typeof body.data!=='object')throw new QueueError(400,'Solicitação inválida.');
  if(body.action==='member'){
@@ -31,5 +31,5 @@ export async function POST(request:Request){try{
   return json({ok:true});
  }
  const {result,queue,revision}=await mutateQueue(body.action,body.data,actor);
- return json({result,queue:publicQueue(queue),revision,self:{email:actor.email,role:actor.role}});
+ return json({result,queue:publicQueue(queue),settings:queue.settings,configVersion:queue.configVersion,revision,self:{email:actor.email,role:actor.role}});
 }catch(e){return failure(e);}}

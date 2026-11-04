@@ -40,4 +40,16 @@ Projeto relacionado: https://github.com/viewsmidiatv-ops/Rede8-senhas. Base inic
 
 ## Modelo comercial: base única
 
-A base agora separa o código comum da configuração do cliente. A Rede8 é a primeira instalação; veja [docs/BASE-UNICA.md](docs/BASE-UNICA.md) para preparar novos clientes e atualizar versões sem misturar bancos ou acessos. `config/instance.json` fornece nome, assinatura, símbolo/logomarca HTTPS, cores principais, guichês iniciais, velocidade de voz pt-BR e layout clássico/compacto. Essa configuração ainda é por arquivo, não por painel.
+A base agora separa o código comum da configuração do cliente. A Rede8 é a primeira instalação; veja [docs/BASE-UNICA.md](docs/BASE-UNICA.md) para preparar novos clientes e atualizar versões sem misturar bancos ou acessos. `config/instance.json` fornece nome, assinatura, símbolo/logomarca HTTPS, cores principais, guichês iniciais, velocidade de voz pt-BR e layout clássico/compacto. Os arquivos definem os padrões iniciais; as configurações da instalação podem ser editadas no painel e são persistidas no banco.
+
+## Painel de configurações
+
+Acesse `/configuracoes` com o perfil de administrador. O painel oferece marca e textos, envio de logomarca PNG/JPG/WebP de até 2 MB (R2), cores, fontes, tamanho de texto e bordas; serviços com prefixos e opção prioritária; guichês com serviços habilitados; voz disponível no dispositivo, velocidade, volume, toque e frases; layout clássico/destaque e posição/quantidade do histórico. Salvar aplica as alterações às telas conectadas na atualização automática.
+
+As configurações são persistidas no mesmo D1 da instalação. Não é necessária conta Supabase para esta etapa. O novo armazenamento R2 da instalação é usado para as logomarcas. A tela de mídias, playlists, o APK Android, os relatórios e a impressão Bluetooth continuam fora desta entrega.
+
+Dados antigos são compatibilizados sem apagar senhas ou acessos. Serviços e guichês são desativados, não removidos. Senhas já emitidas mantêm nome, cor e prefixo originais. Um guichê em atendimento não pode ser desativado ou ter os serviços alterados até concluir a senha. A gravação de configurações rejeita versões antigas para evitar sobrescrita por outro administrador.
+
+A escolha de voz lista as vozes pt-BR que o navegador do aparelho disponibiliza; não há catálogo universal de vozes masculinas/femininas. Testar no computador não garante a mesma voz na TV. Na ausência da voz escolhida, o painel usa uma voz pt-BR disponível.
+
+Validação desta etapa: vinte testes unitários, integração real de D1 incluindo salvamento concorrente com emissão de senhas, TypeScript e compilação de produção. O fluxo visual autenticado e a reprodução física na TV ainda precisam ser validados pelo proprietário no equipamento.

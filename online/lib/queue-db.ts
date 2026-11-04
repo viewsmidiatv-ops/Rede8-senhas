@@ -1,5 +1,5 @@
 import {env} from 'cloudflare:workers';
-import {initialQueue, type Actor, type Queue, applyAction, QueueError} from './queue';
+import {initialQueue, hydrateQueue, type Actor, type Queue, applyAction, QueueError} from './queue';
 import type {ChatGPTUser} from '../app/chatgpt-auth';
 export function database(){if(!env.DB)throw new QueueError(503,'O banco de dados está indisponível. Tente novamente.');return env.DB;}
 // First registration is safe only behind this Site's owner-private access gate.
@@ -21,7 +21,7 @@ export async function loadQueue(): Promise<{queue:Queue;revision:number}> {
  const db=database();let row=await db.prepare('SELECT revision,payload FROM queue_state WHERE key=1').first<{revision:number;payload:string}>();
  if(!row){await db.prepare('INSERT OR IGNORE INTO queue_state (key,revision,payload) VALUES (1,0,?)').bind(JSON.stringify(initialQueue())).run();row=await db.prepare('SELECT revision,payload FROM queue_state WHERE key=1').first<{revision:number;payload:string}>();}
  if(!row)throw new QueueError(503,'Não foi possível carregar a fila.');
- return {queue:JSON.parse(row.payload),revision:row.revision};
+ return {queue:hydrateQueue(JSON.parse(row.payload)),revision:row.revision};
 }
 export async function mutateQueue(action:string,data:Record<string,unknown>,actor:Actor) {
  const db=database();
