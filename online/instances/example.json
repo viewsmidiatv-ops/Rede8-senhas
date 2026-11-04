@@ -1,0 +1,13 @@
+{
+  "id": "novo-cliente",
+  "name": "Novo Cliente",
+  "legalName": "Novo Cliente · Atendimento",
+  "tagline": "Bem-vindo. Vamos atender você.",
+  "symbol": "N",
+  "logoUrl": "",
+  "primaryColor": "#24364B",
+  "accentColor": "#416C72",
+  "counterNames": ["Recepção 1", "Recepção 2"],
+  "voice": {"language": "pt-BR", "rate": 0.9},
+  "displayLayout": "compact"
+}

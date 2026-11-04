@@ -1,0 +1,13 @@
+{
+  "id": "rede8",
+  "name": "Rede8",
+  "legalName": "Rede8 · Saúde Integrada",
+  "tagline": "É da gente. É daqui.",
+  "symbol": "8",
+  "logoUrl": "",
+  "primaryColor": "#342E4E",
+  "accentColor": "#B34B70",
+  "counterNames": ["Guichê 1", "Guichê 2"],
+  "voice": {"language": "pt-BR", "rate": 0.9},
+  "displayLayout": "classic"
+}
