@@ -92,8 +92,16 @@
 .tkt-btn--done:hover { background: #f0f0f0; }
 
 @media print {
+  @page { size: 58mm 110mm; margin: 3mm; }
+  html, body, #root { width: 52mm; height: auto; overflow: visible; background: #fff; }
+  .tkt-body { padding: 4mm 1mm; }
+  .tkt-header { flex-direction: column; gap: 2mm; }
+  .tkt-num { font-size: 32px; overflow-wrap: anywhere; }
+  .tkt-details, .tkt-footer { display: none; }
+  .tkt-qr-hint { color: #111; text-align: center; }
+
   .tkt-overlay { position: static; background: none; backdrop-filter: none; padding: 0; }
-  .tkt { box-shadow: none; border-radius: 0; max-width: 302px; margin: 0 auto; }
+  .tkt { box-shadow: none; border-radius: 0; width: 48mm; max-width: 48mm; margin: 0 auto; }
   .tkt-actions { display: none; }
   .tkt-circle { background: #fff; }
 }

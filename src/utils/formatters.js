@@ -17,18 +17,20 @@ export function toArabicNumerals(n) {
 }
 
 export function formatTime(timestamp) {
-  return new Date(timestamp).toLocaleTimeString('en-US', {
+  return new Date(timestamp).toLocaleTimeString('pt-BR', {
     hour: '2-digit',
     minute: '2-digit',
     second: '2-digit',
-    hour12: true,
+    hour12: false,
+    timeZone: 'America/Bahia',
   })
 }
 
 export function formatDate(timestamp) {
-  return new Date(timestamp).toLocaleDateString('en-US', {
+  return new Date(timestamp).toLocaleDateString('pt-BR', {
+    timeZone: 'America/Bahia',
     year: 'numeric',
-    month: 'long',
+    month: '2-digit',
     day: 'numeric',
   })
 }

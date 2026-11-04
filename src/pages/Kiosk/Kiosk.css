@@ -143,3 +143,8 @@
   .ksk-bg, .ksk-back, .ksk-content { display: none !important; }
   .ksk { height: auto; background: #fff; }
 }
+
+.ksk-brand { color: #342E4E; font-size: 36px; font-weight: 800; }
+.ksk-cat { min-height: 100px; }
+.ksk-cat:disabled { opacity: .6; cursor: wait; }
+.ksk-cat:focus-visible { outline: 3px solid #C84B62; outline-offset: 4px; }

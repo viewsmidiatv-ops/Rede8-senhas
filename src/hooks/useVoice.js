@@ -136,6 +136,11 @@ function speakWeb(text, lang) {
 async function speakSequential(text, lang, settings = {}) {
   aborted = false
 
+  if (settings.ttsProvider === 'browser') {
+    await speakWeb(text, lang)
+    return
+  }
+
   // Try ElevenLabs first if configured
   if (settings.ttsProvider === 'elevenlabs' && settings.elevenLabsApiKey) {
     try {

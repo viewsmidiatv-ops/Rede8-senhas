@@ -6,47 +6,47 @@ import { padNumber } from '../../utils/formatters'
 import './Landing.css'
 
 const PUBLIC_ITEMS = [
-  { to: '/dashboard', label: 'Dashboard', icon: <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="2" y="2" width="5" height="5" rx="1"/><rect x="9" y="2" width="5" height="5" rx="1"/><rect x="2" y="9" width="5" height="5" rx="1"/><rect x="9" y="9" width="5" height="5" rx="1"/></svg> },
-  { to: '/display', label: 'Live Display', icon: <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="2" y="3" width="12" height="9" rx="1"/><path d="M5 14h6M8 12v2"/></svg> },
-  { to: '/kiosk', label: 'Customer Kiosk', icon: <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="3" y="2" width="10" height="12" rx="1"/><path d="M6 6h4M6 9h4M6 12h2"/></svg> },
-  { to: '/track', label: 'Track Position', icon: <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="8" cy="8" r="6"/><path d="M8 5v3l2 2"/></svg> },
+  { to: '/dashboard', label: 'Visão geral', icon: <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="2" y="2" width="5" height="5" rx="1"/><rect x="9" y="2" width="5" height="5" rx="1"/><rect x="2" y="9" width="5" height="5" rx="1"/><rect x="9" y="9" width="5" height="5" rx="1"/></svg> },
+  { to: '/display', label: 'Painel de chamadas', icon: <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="2" y="3" width="12" height="9" rx="1"/><path d="M5 14h6M8 12v2"/></svg> },
+  { to: '/kiosk', label: 'Retirar senha', icon: <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="3" y="2" width="10" height="12" rx="1"/><path d="M6 6h4M6 9h4M6 12h2"/></svg> },
+  { to: '/track', label: 'Acompanhar senha', icon: <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="8" cy="8" r="6"/><path d="M8 5v3l2 2"/></svg> },
 ]
 
 const ADMIN_GROUPS = [
   {
-    title: 'Operations',
+    title: 'Atendimento',
     items: [
-      { to: '/admin', label: 'Operate Counter', icon: <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M2 4h12M2 8h12M2 12h8"/></svg> },
-      { to: '/admin?tab=analytics', label: 'Analytics', icon: <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M2 13V3M2 13h12M5 10V7M8 10V5M11 10V8"/></svg> },
-      { to: '/admin?tab=announce', label: 'Announcements', icon: <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M3 6v4l8 3V3l-8 3zM3 6H2v4h1"/></svg> },
+      { to: '/admin', label: 'Recepção', icon: <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M2 4h12M2 8h12M2 12h8"/></svg> },
+      { to: '/admin?tab=analytics', label: 'Indicadores', icon: <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M2 13V3M2 13h12M5 10V7M8 10V5M11 10V8"/></svg> },
+      { to: '/admin?tab=announce', label: 'Avisos', icon: <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M3 6v4l8 3V3l-8 3zM3 6H2v4h1"/></svg> },
     ],
   },
   {
-    title: 'Configuration',
+    title: 'Configuração',
     items: [
-      { to: '/admin?tab=categories&section=services', label: 'Service Categories', icon: <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="2" y="2" width="5" height="5" rx="1"/><rect x="9" y="2" width="5" height="5" rx="1"/><rect x="2" y="9" width="5" height="5" rx="1"/><rect x="9" y="9" width="5" height="5" rx="1"/></svg> },
-      { to: '/admin?tab=categories&section=counters', label: 'Counters', icon: <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M2 4h12M2 8h12M2 12h12"/></svg> },
-      { to: '/admin?tab=categories&section=branches', label: 'Branches', icon: <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M3 14V6l5-4 5 4v8M6 10h4M6 14v-3h4v3"/></svg> },
+      { to: '/admin?tab=categories&section=services', label: 'Tipos de atendimento', icon: <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="2" y="2" width="5" height="5" rx="1"/><rect x="9" y="2" width="5" height="5" rx="1"/><rect x="2" y="9" width="5" height="5" rx="1"/><rect x="9" y="9" width="5" height="5" rx="1"/></svg> },
+      { to: '/admin?tab=categories&section=counters', label: 'Guichês', icon: <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M2 4h12M2 8h12M2 12h12"/></svg> },
+      { to: '/admin?tab=categories&section=branches', label: 'Unidades', icon: <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M3 14V6l5-4 5 4v8M6 10h4M6 14v-3h4v3"/></svg> },
       { to: '/admin?tab=categories&section=webhooks', label: 'Webhooks', icon: <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="4" cy="12" r="2"/><circle cx="12" cy="4" r="2"/><path d="M5.5 11L11 5.5"/></svg> },
     ],
   },
   {
-    title: 'System',
+    title: 'Sistema',
     items: [
-      { to: '/admin?tab=audit&section=log', label: 'Activity Log', icon: <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="3" y="2" width="10" height="12" rx="1"/><path d="M6 6h4M6 9h4M6 12h2"/></svg> },
-      { to: '/admin?tab=audit&section=shifts', label: 'Shifts', icon: <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="8" cy="8" r="6"/><path d="M8 5v3l2 2"/></svg> },
-      { to: '/admin?tab=audit&section=access', label: 'Access Control', icon: <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="3" y="7" width="10" height="7" rx="1"/><path d="M5 7V4a3 3 0 016 0v3"/></svg> },
+      { to: '/admin?tab=audit&section=log', label: 'Atividades', icon: <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="3" y="2" width="10" height="12" rx="1"/><path d="M6 6h4M6 9h4M6 12h2"/></svg> },
+      { to: '/admin?tab=audit&section=shifts', label: 'Turnos', icon: <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="8" cy="8" r="6"/><path d="M8 5v3l2 2"/></svg> },
+      { to: '/admin?tab=audit&section=access', label: 'Acessos', icon: <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="3" y="7" width="10" height="7" rx="1"/><path d="M5 7V4a3 3 0 016 0v3"/></svg> },
     ],
   },
   {
-    title: 'Settings',
+    title: 'Configurações',
     items: [
-      { to: '/admin?tab=settings&section=appearance', label: 'Appearance', icon: <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="8" cy="8" r="6"/><path d="M8 2a6 6 0 000 12"/></svg> },
-      { to: '/admin?tab=settings&section=sound', label: 'Sound & Voice', icon: <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M3 6v4h2l3 3V3L5 6H3z"/><path d="M11 5.5a3 3 0 010 5"/></svg> },
-      { to: '/admin?tab=settings&section=display', label: 'Display', icon: <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="1" y="2" width="14" height="9" rx="1"/><path d="M5 14h6M8 11v3"/></svg> },
-      { to: '/admin?tab=settings&section=automation', label: 'Automation', icon: <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="8" cy="8" r="2"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2"/></svg> },
-      { to: '/admin?tab=settings&section=signage', label: 'Digital Signage', icon: <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="2" y="3" width="12" height="10" rx="1"/><path d="M6 6l4 2.5L6 11V6z"/></svg> },
-      { to: '/admin?tab=settings&section=advanced', label: 'Advanced', icon: <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M11 2H5l-3 6 3 6h6l3-6-3-6z"/></svg> },
+      { to: '/admin?tab=settings&section=appearance', label: 'Aparência', icon: <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="8" cy="8" r="6"/><path d="M8 2a6 6 0 000 12"/></svg> },
+      { to: '/admin?tab=settings&section=sound', label: 'Som e voz', icon: <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M3 6v4h2l3 3V3L5 6H3z"/><path d="M11 5.5a3 3 0 010 5"/></svg> },
+      { to: '/admin?tab=settings&section=display', label: 'Painel de chamadas', icon: <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="1" y="2" width="14" height="9" rx="1"/><path d="M5 14h6M8 11v3"/></svg> },
+      { to: '/admin?tab=settings&section=automation', label: 'Automação', icon: <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="8" cy="8" r="2"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2"/></svg> },
+      { to: '/admin?tab=settings&section=signage', label: 'Mídias no painel', icon: <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="2" y="3" width="12" height="10" rx="1"/><path d="M6 6l4 2.5L6 11V6z"/></svg> },
+      { to: '/admin?tab=settings&section=advanced', label: 'Avançado', icon: <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M11 2H5l-3 6 3 6h6l3-6-3-6z"/></svg> },
     ],
   },
 ]
@@ -91,25 +91,25 @@ export default function Landing() {
       {/* Sidebar */}
       <aside className="land-sidenav">
         <div className="land-sidenav-head">
-          <div className="land-mark">Q</div>
+          <div className="land-mark">8</div>
           <div>
-            <div className="land-sidenav-title">Queue System</div>
+            <div className="land-sidenav-title">Rede8 • Senhas</div>
             <div className="land-sidenav-sub">v1.0</div>
           </div>
         </div>
 
         <div className="land-sidenav-list">
           {/* Always visible — Operate Counter only */}
-          <div className="land-sidenav-section">Operations</div>
+          <div className="land-sidenav-section">Atendimento</div>
           <Link to="/admin" className="land-sidenav-item">
             <span className="land-sidenav-icon"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M2 4h12M2 8h12M2 12h8"/></svg></span>
-            <span>Operate Counter</span>
+            <span>Recepção</span>
           </Link>
 
           {/* Admin-locked items */}
           {isAdmin && (
             <>
-              <div className="land-sidenav-section">Pages</div>
+              <div className="land-sidenav-section">Telas</div>
               {PUBLIC_ITEMS.map(item => (
                 <NavLink
                   key={item.to}
@@ -141,17 +141,17 @@ export default function Landing() {
           {isAdmin ? (
             <button className="land-sidenav-lock land-sidenav-lock--unlocked" onClick={handleLock}>
               <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="3" y="7" width="10" height="7" rx="1"/><path d="M5 7V4a3 3 0 016 0"/></svg>
-              Lock Admin
+              Encerrar acesso administrativo
             </button>
           ) : (
             <button className="land-sidenav-lock" onClick={() => setPwModal(true)}>
               <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="3" y="7" width="10" height="7" rx="1"/><path d="M5 7V4a3 3 0 016 0v3"/></svg>
-              Unlock Admin
+              Administração
             </button>
           )}
           <div className="land-sidenav-foot-stat">
             <span className="land-sidenav-foot-val">{activeCounters}</span>
-            <span className="land-sidenav-foot-label">counters open</span>
+            <span className="land-sidenav-foot-label">guichês abertos</span>
           </div>
         </div>
       </aside>
@@ -172,8 +172,8 @@ export default function Landing() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6 }}
             >
-              <h1 className="land-title">Queue System</h1>
-              <p className="land-subtitle ar">نظام إدارة الطوابير</p>
+              <h1 className="land-title">Rede8 • Senhas</h1>
+              <p className="land-subtitle">É da gente. É daqui.</p>
             </motion.div>
 
             <motion.div
@@ -184,17 +184,17 @@ export default function Landing() {
             >
               <div className="land-stat">
                 <span className="land-stat-val">{waiting}</span>
-                <span className="land-stat-label">Waiting</span>
+                <span className="land-stat-label">Aguardando</span>
               </div>
               <div className="land-stat-sep" />
               <div className="land-stat">
                 <span className="land-stat-val">{served}</span>
-                <span className="land-stat-label">Served</span>
+                <span className="land-stat-label">Atendidos</span>
               </div>
               <div className="land-stat-sep" />
               <div className="land-stat">
                 <span className="land-stat-val">{activeCounters}</span>
-                <span className="land-stat-label">Counters</span>
+                <span className="land-stat-label">Guichês</span>
               </div>
             </motion.div>
 
@@ -213,8 +213,8 @@ export default function Landing() {
                   <rect x="13" y="13" width="7" height="7" rx="2" />
                 </svg>
                 <div>
-                  <span className="land-quick-label">Dashboard</span>
-                  <span className="land-quick-desc">Full overview and controls</span>
+                  <span className="land-quick-label">Visão geral</span>
+                  <span className="land-quick-desc">Visão geral dos atendimentos</span>
                 </div>
               </Link>
 
@@ -223,19 +223,19 @@ export default function Landing() {
                   <div className="land-quick-icon" style={{ background: 'var(--green-dim)', color: 'var(--green)' }}>
                     <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.6"><rect x="2" y="3" width="14" height="9" rx="1"/><path d="M6 15h6M9 12v3"/></svg>
                   </div>
-                  <span className="land-quick-label">Display</span>
+                  <span className="land-quick-label">Painel de chamadas</span>
                 </Link>
                 <Link to="/kiosk" className="land-quick-card">
                   <div className="land-quick-icon" style={{ background: 'var(--amber-dim)', color: 'var(--amber)' }}>
                     <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.6"><rect x="4" y="2" width="10" height="14" rx="1"/><path d="M7 6h4M7 9h4M7 12h2"/></svg>
                   </div>
-                  <span className="land-quick-label">Kiosk</span>
+                  <span className="land-quick-label">Retirar senha</span>
                 </Link>
                 <Link to="/track" className="land-quick-card">
                   <div className="land-quick-icon" style={{ background: 'rgba(148,163,184,0.1)', color: 'var(--gray-1)' }}>
                     <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.6"><circle cx="9" cy="9" r="6"/><path d="M9 6v3l2 2"/></svg>
                   </div>
-                  <span className="land-quick-label">Track</span>
+                  <span className="land-quick-label">Acompanhar senha</span>
                 </Link>
               </div>
             </motion.div>
@@ -248,7 +248,7 @@ export default function Landing() {
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.5 }}
               >
-                <span className="land-serving-label">Now Serving</span>
+                <span className="land-serving-label">Em atendimento</span>
                 <div className="land-serving-nums">
                   {state.counters.filter(c => c.currentTicket).map(c => {
                     const t = state.tickets.find(tk => tk.number === c.currentTicket)
@@ -279,8 +279,8 @@ export default function Landing() {
                 <rect x="5" y="13" width="18" height="12" rx="2"/>
                 <path d="M9 13V8a5 5 0 0110 0v5"/>
               </svg>
-              <h2>Admin Access</h2>
-              <p>Enter the admin password to unlock all features.</p>
+              <h2>Acesso administrativo</h2>
+              <p>Digite a senha administrativa.</p>
               <input
                 className="land-pw-input"
                 type="password"
@@ -290,10 +290,10 @@ export default function Landing() {
                 onKeyDown={e => e.key === 'Enter' && handleUnlock()}
                 autoFocus
               />
-              {pwError && <div className="land-pw-error">Wrong password</div>}
+              {pwError && <div className="land-pw-error">Senha incorreta</div>}
               <div className="land-pw-btns">
-                <button className="land-pw-btn land-pw-btn--cancel" onClick={() => { setPwModal(false); setPwInput(''); setPwError(false) }}>Cancel</button>
-                <button className="land-pw-btn land-pw-btn--ok" onClick={handleUnlock}>Unlock</button>
+                <button className="land-pw-btn land-pw-btn--cancel" onClick={() => { setPwModal(false); setPwInput(''); setPwError(false) }}>Cancelar</button>
+                <button className="land-pw-btn land-pw-btn--ok" onClick={handleUnlock}>Acessar</button>
               </div>
             </motion.div>
           </motion.div>

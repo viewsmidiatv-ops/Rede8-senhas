@@ -1,3 +1,4 @@
+import { compareQueuedTickets } from '../../utils/queueOrder'
 import { useEffect, useState, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useSocket } from '../../context/SocketContext'
@@ -72,7 +73,7 @@ export default function Display() {
   const [slideIdx, setSlideIdx] = useState(0)
   const [audioLocked, setAudioLocked] = useState(false)
   const weather = useWeather()
-  const lang = state.settings.uiLang || 'en'
+  const lang = state.settings.uiLang || 'pt'
   const slides = state.settings.mediaSlides || []
   const layout = state.settings.displayLayout || 'classic'
 
@@ -156,12 +157,12 @@ export default function Display() {
       return c
     })
   const allClosed = activeCounters.length === 0
-  const waitingTickets = state.tickets.filter(t => t.status === 'waiting').sort((a, b) => a.number - b.number)
+  const waitingTickets = state.tickets.filter(t => t.status === 'waiting').sort(compareQueuedTickets)
   const servedTickets = state.tickets.filter(t => t.status === 'served').sort((a, b) => b.completedAt - a.completedAt)
   const totalWaiting = waitingTickets.length
 
-  const clockStr = clock.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })
-  const dateStr = clock.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
+  const clockStr = clock.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'America/Bahia' })
+  const dateStr = clock.toLocaleDateString('pt-BR', { timeZone: 'America/Bahia', weekday: 'short', month: 'short', day: 'numeric' })
 
   return (
     <div className="dsp">
@@ -183,11 +184,10 @@ export default function Display() {
           }}>
             <div style={{ fontSize: 36, marginBottom: 12 }}>🔊</div>
             <h2 style={{ fontSize: 18, fontWeight: 700, color: 'var(--white)', marginBottom: 8 }}>
-              Click to enable sound
+              Toque para ativar o som
             </h2>
             <p style={{ fontSize: 13, color: 'var(--gray-2)', lineHeight: 1.5 }}>
-              Browsers block audio until you interact with the page. Click anywhere
-              to start hearing chime and voice announcements.
+              Toque nesta página para permitir o áudio das chamadas.
             </p>
           </div>
         </div>
@@ -236,7 +236,7 @@ export default function Display() {
         <div className="dsp-closed-wrap">
           <div className="dsp-closed-line" />
           <h1 className="dsp-closed-en">{t('serviceClosed', lang)}</h1>
-          {lang !== 'ar' && <p className="dsp-closed-ar ar">{t('serviceClosed', 'ar')}</p>}
+          {lang !== 'ar' && lang !== 'pt' && <p className="dsp-closed-ar ar">{t('serviceClosed', 'ar')}</p>}
           <div className="dsp-closed-line" />
         </div>
       ) : (
@@ -374,7 +374,7 @@ export default function Display() {
                 <div className="dsp-spot-side">
                   {serving.length > 1 && (
                     <div className="dsp-spot-others">
-                      <div className="dsp-spot-side-label">Also Serving</div>
+                      <div className="dsp-spot-side-label">Também em atendimento</div>
                       {serving.slice(0, -1).map(c => {
                         const tk = state.tickets.find(t => t.number === c.currentTicket)
                         return tk && (
@@ -441,7 +441,7 @@ export default function Display() {
                       </motion.div>
                     )
                   })}
-                  {waitingTickets.length === 0 && <div className="dsp-dual-empty">Queue is empty</div>}
+                  {waitingTickets.length === 0 && <div className="dsp-dual-empty">Nenhuma senha aguardando</div>}
                 </div>
               </div>
             </div>
@@ -617,7 +617,7 @@ export default function Display() {
           {layout === 'table' && (
             <div className="dsp-tbl">
               <div className="dsp-tbl-head">
-                <span>#</span><span>Category</span><span>Counter</span><span>Wait</span><span>Status</span>
+                <span>#</span><span>Category</span><span>Guichê</span><span>Wait</span><span>Status</span>
               </div>
               <div className="dsp-tbl-body">
                 {activeCounters.filter(c => c.currentTicket).map(c => {
@@ -1003,7 +1003,7 @@ export default function Display() {
         </div>
       )}
 
-      <button className={`dsp-fs no-print ${isFs ? 'dsp-fs--active' : ''}`} onClick={toggleFs} aria-label="Fullscreen">
+      <button className={`dsp-fs no-print ${isFs ? 'dsp-fs--active' : ''}`} onClick={toggleFs} aria-label="Tela cheia">
         {isFs ? (
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M5 2v3H2M11 2v3h3M5 14v-3H2M11 14v-3h3" /></svg>
         ) : (
