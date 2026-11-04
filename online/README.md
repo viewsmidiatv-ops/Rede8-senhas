@@ -8,6 +8,7 @@ Versão hospedada do piloto de atendimento Rede8. Mantém o fluxo de retirada no
 - `/retirar`: tablet, emissão e comprovante de 58 mm.
 - `/recepcao`: seleção/ocupação de guichê, chamada, repetição, conclusão e ausente.
 - `/painel`: TV, chamadas e voz nativa pt-BR; toque em “Ativar som”.
+- `/configuracoes`: marca, serviços, guichês, voz, layout e mídia indoor.
 - `/acessos`: administrador cadastra o e-mail e o perfil de atendentes ou administradores.
 
 Todas as telas exigem entrada com ChatGPT. Esta publicação permanece restrita ao proprietário. O primeiro visitante autenticado é vinculado como proprietário somente porque o Site foi criado privado e continua privado; não tornar público antes dessa primeira entrada. Perfis são verificados no servidor a cada requisição. Cadastrar um perfil não altera o compartilhamento da plataforma, que deve ser autorizado separadamente pelo proprietário. O sistema não armazena senhas.
@@ -26,7 +27,7 @@ O navegador imprime página de 58 × 110 mm. Impressão automática Android/Blue
 
 Node.js 22.13 ou superior. Use o lockfile e os scripts do projeto. O ambiente gerenciado usa pnpm.
 
-- `npm test`: nove testes de regras, isolamento de guichês, permissões, idempotência e virada do dia.
+- `npm test`: testes de regras, isolamento de guichês, permissões, idempotência e virada do dia.
 - `npm run test:db`: teste real de D1 em Miniflare, concorrência, gravação, perfis, revogação, projeção pública e origem da requisição.
 - `npx tsc --noEmit`: verificação TypeScript.
 - `npm run build`: build Vinext/Cloudflare Workers.
@@ -46,10 +47,22 @@ A base agora separa o código comum da configuração do cliente. A Rede8 é a p
 
 Acesse `/configuracoes` com o perfil de administrador. O painel oferece marca e textos, envio de logomarca PNG/JPG/WebP de até 2 MB (R2), cores, fontes, tamanho de texto e bordas; serviços com prefixos e opção prioritária; guichês com serviços habilitados; voz disponível no dispositivo, velocidade, volume, toque e frases; layout clássico/destaque e posição/quantidade do histórico. Salvar aplica as alterações às telas conectadas na atualização automática.
 
-As configurações são persistidas no mesmo D1 da instalação. Não é necessária conta Supabase para esta etapa. O novo armazenamento R2 da instalação é usado para as logomarcas. A tela de mídias, playlists, o APK Android, os relatórios e a impressão Bluetooth continuam fora desta entrega.
+As configurações são persistidas no mesmo D1 da instalação. Não é necessária conta Supabase para esta etapa. O novo armazenamento R2 da instalação é usado para as logomarcas. A mídia indoor usa o mesmo R2 para os arquivos e o D1 para a playlist. O APK Android, os relatórios e a impressão Bluetooth continuam fora desta entrega.
 
 Dados antigos são compatibilizados sem apagar senhas ou acessos. Serviços e guichês são desativados, não removidos. Senhas já emitidas mantêm nome, cor e prefixo originais. Um guichê em atendimento não pode ser desativado ou ter os serviços alterados até concluir a senha. A gravação de configurações rejeita versões antigas para evitar sobrescrita por outro administrador.
 
 A escolha de voz lista as vozes pt-BR que o navegador do aparelho disponibiliza; não há catálogo universal de vozes masculinas/femininas. Testar no computador não garante a mesma voz na TV. Na ausência da voz escolhida, o painel usa uma voz pt-BR disponível.
 
-Validação desta etapa: vinte testes unitários, integração real de D1 incluindo salvamento concorrente com emissão de senhas, TypeScript e compilação de produção. O fluxo visual autenticado e a reprodução física na TV ainda precisam ser validados pelo proprietário no equipamento.
+Validação: 25 testes unitários, integração dos endpoints de mídia com R2 e intervalos de vídeo, integração real de D1 incluindo salvamento concorrente com emissão de senhas, TypeScript e compilação de produção. O fluxo visual autenticado e a reprodução física na TV ainda precisam ser validados pelo proprietário no equipamento.
+
+## Mídia indoor
+
+Em `/configuracoes`, abra **Mídia indoor**. Envie PNG/JPG/WebP ou MP4/WebM (até 20 MB por arquivo e 30 conteúdos por playlist), defina o nome e ative os itens. As setas alteram a ordem; imagens ficam de 5 a 300 segundos e vídeos avançam ao terminar, com limite de 5 minutos. A sequência reinicia automaticamente. “Retirar da playlist” remove a referência, sem apagar o arquivo do armazenamento; arquivos enviados e descartados ainda ocupam espaço no R2. Não há limpeza automática nesta versão.
+
+Ative a tela dividida, escolha o lado, 50/60/70% da largura para conteúdo e enquadramento inteiro/recorte. Salve para aplicar à mesma URL `/painel`. Sem mídia ativa, permanece o painel de senhas anterior. Na divisão, o histórico é agrupado abaixo da senha; o modelo Destaque oculta o histórico. O vídeo da TV fica sempre mudo. Prefira MP4 H.264 Full HD e valide o codec no dispositivo alvo.
+
+Uploads exigem administrador, autenticação e mesma origem. Arquivos são reconhecidos pela assinatura, armazenados com identificador aleatório e servidos somente a visitantes autenticados, incluindo suporte a Range para reprodução de vídeo. Conteúdo com erro é pulado com nova tentativa no próximo ciclo; falha de autoplay oferece botão para iniciar os vídeos.
+
+Esta é a versão web: depende de internet, sem download offline, pareamento de aparelho, agendamento ou múltiplas playlists. Esses recursos e o APK são etapas futuras. O preview gerenciado esteve indisponível por conflito de servidor, então a revisão visual autenticada e a validação física da TV permanecem pendentes.
+
+- `npm run test:media`: testa os endpoints reais com R2 em Miniflare (identidade simulada apenas no fixture), incluindo autenticação, perfis, origem, assinatura e resposta parcial de vídeo.

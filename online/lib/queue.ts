@@ -1,3 +1,4 @@
+import {defaultIndoor} from './indoor.ts';
 import {defaultSettings,validateSettings,type Settings} from './settings.ts';
 import {QueueError} from './errors.ts';
 export {QueueError} from './errors.ts';
@@ -9,7 +10,7 @@ export type CallEvent = { id: number; code: string; counter: string; kind: strin
 export type Queue = { settings:Settings;configVersion:number; day: string; next: number; eventSequence: number; tickets: Ticket[]; counters: Counter[]; events: CallEvent[]; requests: { key: string; ticketId: string; actor: string; at: number }[]; audit: { action: string; actor: string; at: number }[] };
 export function bahiaDay(now = Date.now()) { return new Intl.DateTimeFormat('en-CA', {timeZone: 'America/Bahia', year:'numeric',month:'2-digit',day:'2-digit'}).format(now); }
 export function initialQueue(now = Date.now()): Queue { const settings=defaultSettings();return {settings,configVersion:0, day: bahiaDay(now), next: 1, eventSequence: 0, tickets: [], counters:settings.counters.map(c=>({...c,open:true,current:null})), events:[],requests:[],audit:[] }; }
-export function hydrateQueue(q:Queue):Queue{q.settings ||= defaultSettings(q.counters);q.configVersion ||= 0;for(const c of q.counters){c.enabled ??= true;c.serviceIds ||= [];}return q;}
+export function hydrateQueue(q:Queue):Queue{q.settings ||= defaultSettings(q.counters);q.settings.indoor ||= defaultIndoor();q.configVersion ||= 0;for(const c of q.counters){c.enabled ??= true;c.serviceIds ||= [];}return q;}
 export function counterAccepts(counter:Counter,ticket:Ticket){return counter.enabled!==false&&(!counter.serviceIds?.length||counter.serviceIds.includes(ticket.serviceId||'general'));}
 export function compareTickets(a: Ticket, b: Ticket) { return Number(b.kind === 'priority') - Number(a.kind === 'priority') || a.number - b.number; }
 export function rollDay(q: Queue, now: number) {
