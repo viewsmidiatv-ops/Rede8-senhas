@@ -131,7 +131,7 @@ export function SocketProvider({ children }) {
         height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center',
         color: 'var(--gray-2)', fontFamily: 'var(--font)', fontSize: '14px',
       }}>
-        Connecting...
+        Conectando à Rede8...
       </div>
     )
   }

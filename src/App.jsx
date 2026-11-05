@@ -18,6 +18,9 @@ export default function App() {
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/display" element={<Display />} />
           <Route path="/admin" element={<Admin />} />
+          <Route path="/retirar" element={<Kiosk />} />
+          <Route path="/recepcao" element={<Admin />} />
+          <Route path="/painel" element={<Display />} />
           <Route path="/kiosk" element={<Kiosk />} />
           <Route path="/track" element={<Track />} />
           <Route path="/track/:ticketNumber" element={<Track />} />

@@ -1,0 +1,3 @@
+project_id = "rede8-senhas"
+[functions.tv-device]
+verify_jwt = false

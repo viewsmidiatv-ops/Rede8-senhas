@@ -27,14 +27,14 @@ export default function Dashboard() {
         <Link to="/" className="dash-back">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M10 3L5 8l5 5"/></svg>
         </Link>
-        <h1 className="dash-title">Dashboard</h1>
+        <h1 className="dash-title">Visão geral</h1>
         <span className="dash-clock">{clockStr}</span>
       </header>
 
       <div className="dash-body">
         {/* Left: Counters overview */}
         <div className="dash-left">
-          <div className="dash-section-label">Counters</div>
+          <div className="dash-section-label">Guichês</div>
           <div className="dash-counters">
             {state.counters.map(counter => {
               const ticket = counter.currentTicket
@@ -109,11 +109,11 @@ export default function Dashboard() {
           <div className="dash-stats-row">
             <div className="dash-stat-box">
               <span className="dash-stat-num">{waiting.length}</span>
-              <span className="dash-stat-label">Waiting</span>
+              <span className="dash-stat-label">Aguardando</span>
             </div>
             <div className="dash-stat-box">
               <span className="dash-stat-num">{served.length}</span>
-              <span className="dash-stat-label">Served</span>
+              <span className="dash-stat-label">Atendidos</span>
             </div>
             <div className="dash-stat-box">
               <span className="dash-stat-num">{state.nextTicketNumber - 1}</span>
@@ -138,7 +138,7 @@ export default function Dashboard() {
                 </div>
               )
             })}
-            {waiting.length === 0 && <p className="dash-empty">No one waiting</p>}
+            {waiting.length === 0 && <p className="dash-empty">Nenhuma senha aguardando</p>}
           </div>
 
           {/* Held */}
@@ -174,7 +174,7 @@ export default function Dashboard() {
           {/* Announcements */}
           {state.announcements.length > 0 && (
             <>
-              <div className="dash-section-label" style={{ marginTop: 20 }}>Announcements</div>
+              <div className="dash-section-label" style={{ marginTop: 20 }}>Avisos</div>
               {state.announcements.map((a, i) => (
                 <div key={i} className="dash-announce">{a}</div>
               ))}
@@ -186,9 +186,9 @@ export default function Dashboard() {
       {/* Bottom nav */}
       <nav className="dash-nav">
         <Link to="/admin" className="dash-nav-link">Admin</Link>
-        <Link to="/display" className="dash-nav-link">Display</Link>
-        <Link to="/kiosk" className="dash-nav-link">Kiosk</Link>
-        <Link to="/track" className="dash-nav-link">Track</Link>
+        <Link to="/display" className="dash-nav-link">Painel de chamadas</Link>
+        <Link to="/kiosk" className="dash-nav-link">Retirar senha</Link>
+        <Link to="/track" className="dash-nav-link">Acompanhar senha</Link>
       </nav>
     </div>
   )

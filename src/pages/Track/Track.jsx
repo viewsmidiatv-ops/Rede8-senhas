@@ -62,20 +62,20 @@ export default function Track() {
 
       <div className="trk-content">
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
-          <h1 className="trk-title">Track Your Number</h1>
-          <p className="trk-sub ar">تتبع رقمك</p>
+          <h1 className="trk-title">Acompanhe sua senha</h1>
+
 
           <form className="trk-form" onSubmit={handleSubmit}>
             <input
               className="trk-input"
               type="number"
-              placeholder="Enter your number..."
+              placeholder="Digite o número da senha..."
               value={input}
               onChange={e => setInput(e.target.value)}
               min="1"
             />
             <button className="trk-submit" type="submit" disabled={!input || loading}>
-              {loading ? '...' : 'Track'}
+              {loading ? '...' : 'Consultar'}
             </button>
           </form>
         </motion.div>
@@ -88,43 +88,43 @@ export default function Track() {
           >
             {!result.ticket ? (
               <div className="trk-notfound">
-                <p>Ticket not found</p>
-                <p className="ar">التذكرة غير موجودة</p>
+                <p>Senha não encontrada</p>
+
               </div>
             ) : result.ticket.status === 'served' ? (
               <div className="trk-status trk-status--served">
                 <div className="trk-status-icon">✓</div>
-                <h2>#{padNumber(result.ticket.number)} — Served</h2>
-                <p className="ar">تمت الخدمة</p>
+                <h2>#{result.ticket.displayNumber || padNumber(result.ticket.number)} — Atendimento concluído</h2>
+
               </div>
             ) : result.ticket.status === 'serving' ? (
               <div className="trk-status trk-status--serving">
                 <div className="trk-status-icon trk-status-icon--pulse">!</div>
-                <h2>#{padNumber(result.ticket.number)} — It's Your Turn!</h2>
-                <p className="ar">حان دورك!</p>
-                <p className="trk-counter">Please go to your assigned counter</p>
+                <h2>#{result.ticket.displayNumber || padNumber(result.ticket.number)} — Chegou sua vez!</h2>
+
+                <p className="trk-counter">Dirija-se ao guichê indicado no painel</p>
               </div>
             ) : result.ticket.status === 'skipped' ? (
               <div className="trk-status trk-status--skipped">
                 <div className="trk-status-icon">✕</div>
-                <h2>#{padNumber(result.ticket.number)} — Skipped</h2>
-                <p className="ar">تم التخطي</p>
+                <h2>#{result.ticket.displayNumber || padNumber(result.ticket.number)} — Ausente</h2>
+
               </div>
             ) : (
               <div className="trk-status trk-status--waiting">
                 <div className="trk-pos-num">{result.position}</div>
-                <div className="trk-pos-label">Position in Queue</div>
-                <div className="trk-pos-label ar">الموقع في الطابور</div>
+                <div className="trk-pos-label">Posição no seu tipo de atendimento</div>
+
 
                 <div className="trk-wait-grid">
                   <div className="trk-wait-item">
-                    <span className="trk-wait-val">{result.ticket.displayNumber || `#${padNumber(result.ticket.number)}`}</span>
-                    <span className="trk-wait-label">Your Number</span>
+                    <span className="trk-wait-val">{result.ticket.displayNumber || `#${result.ticket.displayNumber || padNumber(result.ticket.number)}`}</span>
+                    <span className="trk-wait-label">Sua senha</span>
                   </div>
                   <div className="trk-wait-sep" />
                   <div className="trk-wait-item">
                     <span className="trk-wait-val">~{result.estimatedWait}m</span>
-                    <span className="trk-wait-label">Est. Wait</span>
+                    <span className="trk-wait-label">Espera estimada*</span>
                   </div>
                 </div>
 
@@ -136,7 +136,7 @@ export default function Track() {
                   const current = result.ticket.currentStage || 0
                   return (
                     <div className="trk-stages">
-                      <div className="trk-stages-label">Your Journey</div>
+                      <div className="trk-stages-label">Seu atendimento</div>
                       <div className="trk-stages-list">
                         {stages.map((s, i) => (
                           <div key={s.id} className={`trk-stage ${i < current ? 'trk-stage--done' : ''} ${i === current ? 'trk-stage--current' : ''}`}>
@@ -149,7 +149,7 @@ export default function Track() {
                   )
                 })()}
 
-                <p className="trk-auto">Auto-refreshes every 10 seconds</p>
+                <p className="trk-auto">Atualiza a cada 10 segundos. A prioridade pode alterar a ordem.</p>
               </div>
             )}
           </motion.div>

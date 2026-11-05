@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useSocket } from '../../context/SocketContext'
@@ -10,7 +10,10 @@ export default function Kiosk() {
   const { state, emit } = useSocket()
   const [ticket, setTicket] = useState(null)
   const [catWaits, setCatWaits] = useState({})
-  const lang = state.settings.uiLang || 'en'
+  const [issuing, setIssuing] = useState(false)
+  const [error, setError] = useState('')
+  const takingRef = useRef(false)
+  const lang = state.settings.uiLang || 'pt'
 
   const waiting = state.tickets.filter(t => t.status === 'waiting').length
 
@@ -30,11 +33,21 @@ export default function Kiosk() {
   }, [ticket])
 
   const handleTake = async (categoryId) => {
-    const t = await emit('ticket:take', { categoryId })
-    setTicket(t)
+    if (takingRef.current) return
+    takingRef.current = true
+    setIssuing(true)
+    setError('')
+    try {
+      const result = await emit('ticket:take', { categoryId })
+      if (result?.number) setTicket(result)
+      else setError(result?.error || 'Não foi possível confirmar a emissão. Procure a recepção antes de tentar novamente.')
+    } finally {
+      takingRef.current = false
+      setIssuing(false)
+    }
   }
 
-  const allClosed = state.counters.every(c => c.status === 'closed')
+  const allClosed = !state.counters.length || state.counters.every(c => c.status === 'closed')
 
   if (allClosed) {
     return (
@@ -49,7 +62,7 @@ export default function Kiosk() {
             <svg width="28" height="28" viewBox="0 0 28 28" fill="none" stroke="currentColor" strokeWidth="2"><path d="M8 8l12 12M20 8L8 20"/></svg>
           </div>
           <h2>{t('serviceClosed', lang)}</h2>
-          {lang !== 'ar' && <p className="ar">{t('serviceClosed', 'ar')}</p>}
+          {lang !== 'ar' && lang !== 'pt' && <p className="ar">{t('serviceClosed', 'ar')}</p>}
           <p className="ksk-closed-sub">{t('comeBackLater', lang)}</p>
         </motion.div>
       </div>
@@ -70,10 +83,13 @@ export default function Kiosk() {
         {!ticket && (
           <motion.div className="ksk-step" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
             <div className="ksk-head">
+              <p className="ksk-brand">Rede8</p>
+              <p>É da gente. É daqui.</p>
               <h1>{t('selectService', lang)}</h1>
-              {lang !== 'ar' && <p className="ar">{t('selectService', 'ar')}</p>}
+              {lang !== 'ar' && lang !== 'pt' && <p className="ar">{t('selectService', 'ar')}</p>}
             </div>
 
+            <p role="status" aria-live="polite">{issuing ? 'Emitindo sua senha…' : error}</p>
             <div className="ksk-cats">
               {state.categories.map(cat => {
                 const cw = catWaits[cat.id]
@@ -82,17 +98,18 @@ export default function Kiosk() {
                   <motion.button
                     key={cat.id}
                     className="ksk-cat"
+                    disabled={issuing}
                     onClick={() => handleTake(cat.id)}
                     whileTap={{ scale: 0.97 }}
                   >
                     <div className="ksk-cat-bar" style={{ background: cat.color }} />
                     <div className="ksk-cat-body">
                       <span className="ksk-cat-name">{catName || cat.name}</span>
-                      {lang !== 'ar' && cat.nameAr && <span className="ksk-cat-name-ar ar">{cat.nameAr}</span>}
+                      {lang !== 'ar' && lang !== 'pt' && cat.nameAr && <span className="ksk-cat-name-ar ar">{cat.nameAr}</span>}
                     </div>
                     {cw && (
                       <div className="ksk-cat-wait">
-                        <span className="ksk-cat-wait-time">~{cw.estWaitMin}m</span>
+                        <span className="ksk-cat-wait-time">~{cw.estWaitMin} min</span>
                         <span className="ksk-cat-wait-count">{cw.waiting} {t('waiting', lang).toLowerCase()}</span>
                       </div>
                     )}

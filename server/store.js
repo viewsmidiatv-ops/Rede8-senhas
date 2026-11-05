@@ -3,10 +3,11 @@ import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
 import { createClient } from '@supabase/supabase-js'
 import 'dotenv/config'
+import { compareQueuedTickets } from '../src/utils/queueOrder.js'
 import { CLINIC_COUNTERS, CLINIC_CATEGORIES } from './clinic-setup.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
-const DATA_FILE = join(__dirname, 'data.json')
+const DATA_FILE = process.env.QUEUE_DATA_FILE || join(__dirname, 'data.json')
 
 // ---- Supabase client (server-side, full access) ----
 const SUPABASE_URL = process.env.SUPABASE_URL
@@ -70,7 +71,7 @@ export function validateLicenseKey(key) {
 
 function makeDefault() {
   return {
-    license: 'QS-KJHG-JHGF-HGFE-GFED-STUV',
+    license: generateLicenseKey('rede8-pilot'),
     counters: JSON.parse(JSON.stringify(CLINIC_COUNTERS)),
     categories: JSON.parse(JSON.stringify(CLINIC_CATEGORIES)),
     tickets: [],
@@ -83,36 +84,36 @@ function makeDefault() {
       operatorPassword: '',
       viewerPassword: '',
     },
-    branches: [{ id: 'main', name: 'Main Branch', nameAr: 'الفرع الرئيسي' }],
+    branches: [{ id: 'main', name: 'Rede8' }],
     activeBranch: 'main',
     webhooks: [],
     settings: {
       soundTheme: 'doorbell',
-      languages: ['ar', 'en'],
-      uiLang: 'en',
+      languages: ['pt'],
+      uiLang: 'pt',
       volume: 0.8,
       theme: 'light',
-      accentColor: '#4f8ff7',
+      accentColor: '#342E4E',
       logoUrl: '',
       mediaSlides: [],
       signageInterval: 10,
       idleTimeout: 0,
       smartRouting: false,
       floorMapEnabled: false,
-      ttsProvider: 'elevenlabs',
-      elevenLabsApiKey: 'sk_edd298b7eed05da619d536b6ea4d36e5157019b7dcc6cb72',
+      ttsProvider: 'browser',
+      elevenLabsApiKey: '',
       elevenLabsVoiceId: 'A9ATTqUUQ6GHu0coCz8t',
       elevenLabsModel: 'eleven_multilingual_v2',
       backgroundTheme: 'none',
       customCSS: '',
-      displayLayout: 'classic',
+      displayLayout: 'minimal',
       // Per-language overrides for the spoken announcement. Empty string =
       // fall back to the built-in template in src/utils/i18n.js. Available
       // placeholders: {n} ticket number, {counter} counter name (translated),
       // {category} category name (localized).
       voiceTexts: {
-        next: { en: '', ar: '' },
-        recall: { en: '', ar: '' },
+        next: { pt: '', en: '', ar: '' },
+        recall: { pt: '', en: '', ar: '' },
       },
     },
   }
@@ -350,8 +351,9 @@ export async function saveStore(state, { force = false } = {}) {
 // ---- Ticket operations ----
 
 export function takeTicket(state, categoryId) {
-  const number = state.nextTicketNumber++
   const cat = state.categories.find(c => c.id === categoryId)
+  if (!cat) return null
+  const number = state.nextTicketNumber++
   const prefix = cat?.prefix || ''
   const ticket = {
     number,
@@ -453,12 +455,7 @@ export function callNext(state, counterId, specificTicketNumber = null) {
         }
         return true
       })
-      .sort((a, b) => {
-        // Forced transfers first, then by ticket number
-        if (a.forcedCounterId && !b.forcedCounterId) return -1
-        if (b.forcedCounterId && !a.forcedCounterId) return 1
-        return a.number - b.number
-      })
+      .sort(compareQueuedTickets)
 
     next = waiting[0]
   }

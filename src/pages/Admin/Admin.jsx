@@ -1,3 +1,4 @@
+import { compareQueuedTickets } from '../../utils/queueOrder'
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -124,7 +125,7 @@ export default function Admin() {
   const nextStageObj = currentStages[currentStageIdx + 1] || null
   const hasMultiStage = currentStages.length > 1
 
-  const waiting = state.tickets.filter(t => t.status === 'waiting')
+  const waiting = state.tickets.filter(t => t.status === 'waiting').sort(compareQueuedTickets)
   const served = state.tickets.filter(t => t.status === 'served')
 
   const handleJoin = () => {
@@ -150,11 +151,7 @@ export default function Admin() {
         }
         return true
       })
-      .sort((a, b) => {
-        if (a.forcedCounterId && !b.forcedCounterId) return -1
-        if (b.forcedCounterId && !a.forcedCounterId) return 1
-        return a.number - b.number
-      })[0] || null
+      .sort(compareQueuedTickets)[0] || null
   }, [counter, state.tickets, state.categories])
 
   // callConfirm: null | { ticket: <Ticket|null>, specific: boolean }
@@ -325,25 +322,25 @@ export default function Admin() {
     return (
       <div className="adm">
         <div className="adm-join">
-          <h1 className="adm-join-title">Staff Access</h1>
-          <p className="adm-join-sub">Enter the operator password to continue</p>
+          <h1 className="adm-join-title">Acesso da recepção</h1>
+          <p className="adm-join-sub">Digite a senha do atendente para continuar</p>
           <div className="adm-join-form" style={{ marginTop: 24 }}>
             <input
               className="adm-input"
               type="password"
-              placeholder="Operator password..."
+              placeholder="Senha do atendente..."
               value={opPwInput}
               onChange={e => { setOpPwInput(e.target.value); setOpPwError(false) }}
               onKeyDown={e => e.key === 'Enter' && handleOperatorLogin()}
               autoFocus
             />
             <button className="adm-join-btn" onClick={handleOperatorLogin} disabled={!opPwInput.trim()}>
-              Continue
+              Continuar
             </button>
           </div>
           {opPwError && (
             <p style={{ color: 'var(--red)', fontSize: 12, marginTop: 8, textAlign: 'center' }}>
-              Wrong password
+              Senha incorreta
             </p>
           )}
         </div>
@@ -367,11 +364,11 @@ export default function Admin() {
                 borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer',
               }}
             >
-              Unlock Admin
+              Administração
             </button>
           )}
-          <h1 className="adm-join-title">Select Counter</h1>
-          <p className="adm-join-sub">Choose your counter and enter your name</p>
+          <h1 className="adm-join-title">Selecione o guichê</h1>
+          <p className="adm-join-sub">Escolha seu guichê e informe seu nome</p>
 
           <div className="adm-join-counters">
             {state.counters.map(c => (
@@ -396,7 +393,7 @@ export default function Admin() {
               className="adm-join-counter adm-join-add"
               onClick={() => emit('counter:add', {})}
             >
-              + Add Counter
+              + Adicionar guichê
             </button>
           </div>
 
@@ -405,14 +402,14 @@ export default function Admin() {
               <input
                 className="adm-input"
                 type="text"
-                placeholder="Your name..."
+                placeholder="Seu nome..."
                 value={operatorName}
                 onChange={e => setOperatorName(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && handleJoin()}
                 autoFocus
               />
               <button className="adm-join-btn" onClick={handleJoin} disabled={!operatorName.trim()}>
-                Join
+                Acessar guichê
               </button>
             </motion.div>
           )}
@@ -445,7 +442,7 @@ export default function Admin() {
         </div>
 
         <div className="adm-sidenav-list">
-          <div className="adm-sidenav-section">Operations</div>
+          <div className="adm-sidenav-section">Atendimento</div>
           {NAV_ITEMS.filter(item => !item.adminOnly || isAdmin).map(item => (
             <button
               key={item.id}
@@ -465,7 +462,7 @@ export default function Admin() {
               onClick={() => setTab('admin-login')}
               style={{ background: 'var(--blue-dim)', color: 'var(--blue)' }}
             >
-              Unlock Admin
+              Administração
             </button>
           )}
           {isAdmin && (
@@ -477,7 +474,7 @@ export default function Admin() {
                 setTab('queue')
               }}
             >
-              Lock Admin
+              Encerrar acesso administrativo
             </button>
           )}
           {counter && (
@@ -515,24 +512,24 @@ export default function Admin() {
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" strokeWidth="1.5" style={{ marginBottom: 12 }}>
                 <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/>
               </svg>
-              <h3>Admin Access</h3>
-              <p>Enter the admin password to access settings, analytics, and management tools.</p>
+              <h3>Acesso administrativo</h3>
+              <p>Digite a senha administrativa para acessar as configurações.</p>
               {!state.roles?.hasAdmin && (
                 <p className="adm-admin-login-hint">No admin password set. Access is open — go to Audit tab to set one.</p>
               )}
               <input
                 className="adm-input"
                 type="password"
-                placeholder="Admin password..."
+                placeholder="Senha administrativa..."
                 value={adminPwInput}
                 onChange={e => { setAdminPwInput(e.target.value); setAdminPwError(false) }}
                 onKeyDown={e => e.key === 'Enter' && handleAdminLogin()}
                 autoFocus
               />
-              {adminPwError && <span className="adm-admin-login-err">Wrong password</span>}
+              {adminPwError && <span className="adm-admin-login-err">Senha incorreta</span>}
               <div className="adm-admin-login-btns">
-                <button className="adm-act" onClick={() => setTab('queue')}>Cancel</button>
-                <button className="adm-join-btn" onClick={handleAdminLogin}>Login</button>
+                <button className="adm-act" onClick={() => setTab('queue')}>Cancelar</button>
+                <button className="adm-join-btn" onClick={handleAdminLogin}>Entrar</button>
                 {!state.roles?.hasAdmin && (
                   <button className="adm-join-btn" onClick={() => { setIsAdmin(true); setTab('queue'); setAdminToast(true); setTimeout(() => setAdminToast(false), 2500) }} style={{ background: 'var(--green)' }}>
                     Skip (no password)
@@ -549,7 +546,7 @@ export default function Admin() {
               {/* Status */}
               <div className="adm-stats">
                 <div className="adm-stat adm-stat--current">
-                  <span className="adm-stat-label">Serving</span>
+                  <span className="adm-stat-label">Em atendimento</span>
                   <span className="adm-stat-num">{currentTicket ? (currentTicket.displayNumber || padNumber(currentTicket.number)) : '—'}</span>
                   {currentTicket && (
                     <span className="adm-stat-cat" style={{ color: currentTicketCategory?.color }}>
@@ -563,11 +560,11 @@ export default function Admin() {
                   )}
                 </div>
                 <div className="adm-stat">
-                  <span className="adm-stat-label">Waiting</span>
+                  <span className="adm-stat-label">Aguardando</span>
                   <span className="adm-stat-num adm-stat-num--dim">{waiting.length}</span>
                 </div>
                 <div className="adm-stat">
-                  <span className="adm-stat-label">Served</span>
+                  <span className="adm-stat-label">Atendidos</span>
                   <span className="adm-stat-num adm-stat-num--dim">{served.length}</span>
                 </div>
               </div>
@@ -575,23 +572,23 @@ export default function Admin() {
               {/* Actions */}
               <motion.button className="adm-next" onClick={handleCallNext} whileTap={{ scale: 0.97 }}
                 disabled={counter.status === 'closed'}>
-                Call Next<kbd>N</kbd>
+                Chamar próxima<kbd>N</kbd>
               </motion.button>
 
               <div className="adm-actions">
                 <button className="adm-act" onClick={handleRecall} disabled={!currentTicket}>
-                  Recall<kbd>R</kbd>
+                  Repetir chamada<kbd>R</kbd>
                 </button>
                 {hasMultiStage ? (
                   <div className="adm-sendto-wrap">
                     <button className="adm-act adm-act--advance"
                       onClick={() => setSendToOpen(o => !o)}
                       disabled={!currentTicket}>
-                      Send To…<kbd>A</kbd>
+                      Encaminhar…<kbd>A</kbd>
                     </button>
                     {sendToOpen && currentTicket && (
                       <div className="adm-sendto-pop">
-                        <div className="adm-sendto-label">Route patient to:</div>
+                        <div className="adm-sendto-label">Encaminhar para:</div>
                         {currentStages.map((stage, idx) => (
                           <button
                             key={stage.id}
@@ -600,7 +597,7 @@ export default function Admin() {
                           >
                             <span className="adm-sendto-num">{idx + 1}</span>
                             <span className="adm-sendto-name">{stage.name}</span>
-                            {idx === currentStageIdx && <span className="adm-sendto-tag">again</span>}
+                            {idx === currentStageIdx && <span className="adm-sendto-tag">novamente</span>}
                           </button>
                         ))}
                         <div className="adm-sendto-divider" />
@@ -613,14 +610,14 @@ export default function Admin() {
                   </div>
                 ) : (
                   <button className="adm-act" onClick={handleComplete} disabled={!currentTicket}>
-                    Complete<kbd>C</kbd>
+                    Concluir<kbd>C</kbd>
                   </button>
                 )}
                 <button className="adm-act" onClick={handleSkip} disabled={!currentTicket}>
-                  Skip<kbd>S</kbd>
+                  Ausente<kbd>S</kbd>
                 </button>
                 <button className="adm-act" onClick={handleHold} disabled={!currentTicket}>
-                  Hold<kbd>H</kbd>
+                  Aguardar retorno<kbd>H</kbd>
                 </button>
               </div>
 
@@ -632,7 +629,7 @@ export default function Admin() {
                   <input
                     className="adm-input"
                     type="text"
-                    placeholder="Patient name (optional)"
+                    placeholder="Observação (evite dados pessoais)"
                     defaultValue={currentTicket.notes || ''}
                     key={`name-${currentTicket.number}`}
                     onBlur={e => {
@@ -667,7 +664,7 @@ export default function Admin() {
                         <span className="adm-held-num">{(t.displayNumber || padNumber(t.number))}</span>
                         <span className="adm-held-cat" style={{ color: cat?.color }}>{cat?.name}</span>
                         {t.notes && <span className="adm-held-note" title={t.notes}>📝</span>}
-                        <button className="adm-held-resume" onClick={() => handleUnhold(t.number)}>Resume</button>
+                        <button className="adm-held-resume" onClick={() => handleUnhold(t.number)}>Retomar</button>
                       </div>
                     )
                   })}
@@ -707,10 +704,10 @@ export default function Admin() {
                     </button>
                   )
                 })}
-                {waiting.length === 0 && <p className="adm-empty">No one waiting</p>}
+                {waiting.length === 0 && <p className="adm-empty">Nenhuma senha aguardando</p>}
               </div>
 
-              <h3 className="adm-sidebar-title" style={{ marginTop: 20 }}>History</h3>
+              <h3 className="adm-sidebar-title" style={{ marginTop: 20 }}>Histórico</h3>
               <div className="adm-sidebar-list">
                 {served.sort((a, b) => b.completedAt - a.completedAt).slice(0, 20).map(t => {
                   const cat = state.categories.find(c => c.id === t.categoryId)
@@ -731,7 +728,7 @@ export default function Admin() {
                     </div>
                   )
                 })}
-                {served.length === 0 && <p className="adm-empty">No history yet</p>}
+                {served.length === 0 && <p className="adm-empty">Nenhum atendimento registrado</p>}
               </div>
             </div>
           </div>
@@ -743,9 +740,9 @@ export default function Admin() {
             {analytics ? (
               <>
                 <div className="adm-ana-grid">
-                  <div className="adm-ana-card"><span className="adm-ana-val">{analytics.totalServed}</span><span className="adm-ana-label">Served</span></div>
-                  <div className="adm-ana-card"><span className="adm-ana-val">{analytics.totalWaiting}</span><span className="adm-ana-label">Waiting</span></div>
-                  <div className="adm-ana-card"><span className="adm-ana-val">{analytics.totalSkipped}</span><span className="adm-ana-label">Skipped</span></div>
+                  <div className="adm-ana-card"><span className="adm-ana-val">{analytics.totalServed}</span><span className="adm-ana-label">Atendidos</span></div>
+                  <div className="adm-ana-card"><span className="adm-ana-val">{analytics.totalWaiting}</span><span className="adm-ana-label">Aguardando</span></div>
+                  <div className="adm-ana-card"><span className="adm-ana-val">{analytics.totalSkipped}</span><span className="adm-ana-label">Ausentes</span></div>
                   <div className="adm-ana-card"><span className="adm-ana-val">{analytics.avgWaitTime}s</span><span className="adm-ana-label">Avg Wait</span></div>
                   <div className="adm-ana-card"><span className="adm-ana-val">{analytics.avgServiceTime}s</span><span className="adm-ana-label">Avg Service</span></div>
                   <div className="adm-ana-card"><span className="adm-ana-val">{analytics.totalIssued}</span><span className="adm-ana-label">Issued</span></div>
@@ -884,8 +881,8 @@ export default function Admin() {
                       @media print{body{padding:20px}}
                     </style></head><body>
                     <h2>Queue Report — ${esc(new Date().toLocaleDateString())}</h2>
-                    <div class="card"><span class="val">${analytics.totalServed}</span><span class="lbl">Served</span></div>
-                    <div class="card"><span class="val">${analytics.totalWaiting}</span><span class="lbl">Waiting</span></div>
+                    <div class="card"><span class="val">${analytics.totalServed}</span><span class="lbl">Atendidos</span></div>
+                    <div class="card"><span class="val">${analytics.totalWaiting}</span><span class="lbl">Aguardando</span></div>
                     <div class="card"><span class="val">${analytics.avgWaitTime}s</span><span class="lbl">Avg Wait</span></div>
                     <div class="card"><span class="val">${analytics.avgServiceTime}s</span><span class="lbl">Avg Service</span></div>
                     ${advAnalytics ? `
@@ -936,7 +933,7 @@ export default function Admin() {
           <div className="adm-settings">
             {showSection('services') && (
             <div className="adm-set-section">
-              <h3>Service Categories</h3>
+              <h3>Tipos de atendimento</h3>
               <div className="adm-cat-list">
                 {state.categories.map(cat => (
                   <div key={cat.id} className="adm-cat-card">
@@ -1001,7 +998,7 @@ export default function Admin() {
 
             {showSection('counters') && (
             <div className="adm-set-section">
-              <h3>Counters</h3>
+              <h3>Guichês</h3>
               <div className="adm-cat-list">
                 {state.counters.map(c => (
                   <div key={c.id} className="adm-cat-row">
@@ -1014,14 +1011,14 @@ export default function Admin() {
                   </div>
                 ))}
               </div>
-              <button className="adm-act" style={{ marginTop: 8 }} onClick={() => emit('counter:add', {})}>+ Add Counter</button>
+              <button className="adm-act" style={{ marginTop: 8 }} onClick={() => emit('counter:add', {})}>+ Adicionar guichê</button>
             </div>
             )}
 
             {/* Branches */}
             {showSection('branches') && (
             <div className="adm-set-section">
-              <h3>Branches</h3>
+              <h3>Unidades</h3>
               <div className="adm-cat-list">
                 {state.branches.map(b => (
                   <div key={b.id} className="adm-cat-row">
@@ -1132,7 +1129,7 @@ export default function Admin() {
             <div className="sg">
               <div className="sg-head">
                 <svg className="sg-icon" width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="9" cy="9" r="7"/><path d="M9 2a7 7 0 000 14"/></svg>
-                <h2 className="sg-title">Appearance</h2>
+                <h2 className="sg-title">Aparência</h2>
               </div>
               <div className="sg-body">
                 <div className="sg-row">
@@ -1195,14 +1192,15 @@ export default function Admin() {
             <div className="sg">
               <div className="sg-head">
                 <svg className="sg-icon" width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M3 7v4h3l4 4V3L6 7H3z"/><path d="M13 6.5a3.5 3.5 0 010 5"/></svg>
-                <h2 className="sg-title">Sound & Voice</h2>
+                <h2 className="sg-title">Som e voz</h2>
               </div>
               <div className="sg-body">
                 {/* TTS Provider */}
                 <div className="sg-field">
-                  <label className="sg-label">Voice Provider</label>
+                  <label className="sg-label">Provedor de voz</label>
                   <div className="adm-set-options">
                     {[
+                      { id: 'browser', name: 'Voz do dispositivo (português)' },
                       { id: 'google', name: 'Google TTS (free)' },
                       { id: 'elevenlabs', name: 'ElevenLabs (HD AI voices)' },
                     ].map(p => (
@@ -1323,8 +1321,8 @@ export default function Admin() {
                     <code>{' {category} '}</code> visit type. Leave blank to use the default.
                   </p>
                   {[
-                    { action: 'next', label: 'Call Next' },
-                    { action: 'recall', label: 'Recall' },
+                    { action: 'next', label: 'Chamar próxima' },
+                    { action: 'recall', label: 'Repetir chamada' },
                   ].map(({ action, label }) => (
                     <div key={action} style={{ marginTop: 12 }}>
                       <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--gray-2)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
@@ -1453,7 +1451,7 @@ export default function Admin() {
             <div className="sg">
               <div className="sg-head">
                 <svg className="sg-icon" width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="9" cy="9" r="3"/><path d="M9 1v2M9 15v2M1 9h2M15 9h2M3.3 3.3l1.4 1.4M13.3 13.3l1.4 1.4M3.3 14.7l1.4-1.4M13.3 4.7l1.4-1.4"/></svg>
-                <h2 className="sg-title">Automation</h2>
+                <h2 className="sg-title">Automação</h2>
               </div>
               <div className="sg-body">
                 <div className="sg-row">
@@ -1534,7 +1532,7 @@ export default function Admin() {
             <div className="sg">
               <div className="sg-head">
                 <svg className="sg-icon" width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="2" y="3" width="14" height="12" rx="2"/><path d="M7 7l4 2.5L7 12V7z"/></svg>
-                <h2 className="sg-title">Digital Signage</h2>
+                <h2 className="sg-title">Mídias no painel</h2>
               </div>
               <div className="sg-body">
                 <div className="sg-field">
@@ -1573,7 +1571,7 @@ export default function Admin() {
             <div className="sg">
               <div className="sg-head">
                 <svg className="sg-icon" width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M12 2H6l-4 7 4 7h6l4-7-4-7z"/></svg>
-                <h2 className="sg-title">Advanced</h2>
+                <h2 className="sg-title">Avançado</h2>
               </div>
               <div className="sg-body">
                 <div className="sg-field">
@@ -1616,10 +1614,9 @@ export default function Admin() {
                 onClick={e => e.stopPropagation()}>
                 {nothingToDo ? (
                   <>
-                    <h3>Nothing to do</h3>
+                    <h3>Nenhuma senha disponível</h3>
                     <p style={{ fontSize: 13, color: 'var(--gray-2)', padding: '12px 0' }}>
-                      No waiting patient matches this counter's stages, and no patient is being
-                      served. Click a patient in the Waiting list to call them directly.
+                      Não há senha aguardando para este guichê. Confira a lista de espera.
                     </p>
                     <div className="adm-modal-btns">
                       <button className="adm-modal-btn adm-modal-btn--primary" onClick={() => setCallConfirm(null)} autoFocus>OK</button>
@@ -1628,8 +1625,8 @@ export default function Admin() {
                 ) : (
                   <>
                     <h3>{t
-                      ? (callConfirm.specific ? 'Call this patient?' : 'Call next patient?')
-                      : (curWillAdvance ? `Send to ${curNextStage.name}?` : 'Finish with this patient?')
+                      ? (callConfirm.specific ? 'Chamar esta senha?' : 'Chamar a próxima senha?')
+                      : (curWillAdvance ? `Send to ${curNextStage.name}?` : 'Concluir este atendimento?')
                     }</h3>
                     {t && (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '12px 0' }}>
@@ -1639,23 +1636,23 @@ export default function Admin() {
                         {cat && <div style={{ fontSize: 13, color: cat.color, fontWeight: 600 }}>{cat.name}</div>}
                         {stage && (
                           <div style={{ fontSize: 11, color: 'var(--gray-2)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                            Stage: {stage.name}
+                            Etapa: {stage.name}
                           </div>
                         )}
-                        {t.notes && <div style={{ fontSize: 12, color: 'var(--gray-1)', marginTop: 4 }}>Patient: {t.notes}</div>}
+                        {t.notes && <div style={{ fontSize: 12, color: 'var(--gray-1)', marginTop: 4 }}>Observação: {t.notes}</div>}
                       </div>
                     )}
                     {currentTicket && (
                       <p style={{ fontSize: 12, color: 'var(--gray-2)', padding: '8px 0', borderTop: t ? '1px solid var(--border)' : 'none', marginTop: t ? 8 : 0 }}>
                         {curWillAdvance
-                          ? `Current patient ${currentTicket.displayNumber || padNumber(currentTicket.number)} → ${curNextStage.name}`
-                          : `Current patient ${currentTicket.displayNumber || padNumber(currentTicket.number)} will be marked done`}
+                          ? `Atendimento atual ${currentTicket.displayNumber || padNumber(currentTicket.number)} → ${curNextStage.name}`
+                          : `Atendimento atual ${currentTicket.displayNumber || padNumber(currentTicket.number)} será concluído`}
                       </p>
                     )}
                     <div className="adm-modal-btns">
-                      <button className="adm-modal-btn" onClick={() => setCallConfirm(null)}>Cancel</button>
+                      <button className="adm-modal-btn" onClick={() => setCallConfirm(null)}>Cancelar</button>
                       <button className="adm-modal-btn adm-modal-btn--primary" onClick={confirmCall} autoFocus>
-                        {t ? 'Call' : (curWillAdvance ? `Send to ${curNextStage.name}` : 'Finish')}
+                        {t ? 'Chamar' : (curWillAdvance ? `Send to ${curNextStage.name}` : 'Concluir')}
                       </button>
                     </div>
                   </>
@@ -1671,7 +1668,7 @@ export default function Admin() {
               <h3>Reset Queue</h3>
               <p>This clears all tickets and history.</p>
               <div className="adm-modal-btns">
-                <button className="adm-modal-btn" onClick={() => setConfirmReset(false)}>Cancel</button>
+                <button className="adm-modal-btn" onClick={() => setConfirmReset(false)}>Cancelar</button>
                 <button className="adm-modal-btn adm-modal-btn--danger" onClick={handleReset}>Reset</button>
               </div>
             </motion.div>
@@ -1721,7 +1718,7 @@ export default function Admin() {
                 </div>
               </div>
 
-              <button className="adm-modal-btn" onClick={() => setTransferModal(null)} style={{ marginTop: 12, width: '100%' }}>Cancel</button>
+              <button className="adm-modal-btn" onClick={() => setTransferModal(null)} style={{ marginTop: 12, width: '100%' }}>Cancelar</button>
             </motion.div>
           </motion.div>
         )}
@@ -1738,8 +1735,8 @@ export default function Admin() {
                 autoFocus
               />
               <div className="adm-modal-btns">
-                <button className="adm-modal-btn" onClick={() => setNoteModal(null)}>Cancel</button>
-                <button className="adm-modal-btn adm-modal-btn--primary" onClick={handleSaveNote}>Save</button>
+                <button className="adm-modal-btn" onClick={() => setNoteModal(null)}>Cancelar</button>
+                <button className="adm-modal-btn adm-modal-btn--primary" onClick={handleSaveNote}>Salvar</button>
               </div>
             </motion.div>
           </motion.div>

@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion'
 import { QRCodeSVG } from 'qrcode.react'
-import { padNumber, toArabicNumerals, formatTime, formatDate } from '../utils/formatters'
+import { padNumber, formatTime, formatDate } from '../utils/formatters'
 import './TicketView.css'
 
 export default function TicketView({ ticket, categories, tickets, onPrint, onClose }) {
@@ -29,8 +29,8 @@ export default function TicketView({ ticket, categories, tickets, onPrint, onClo
 
         <div className="tkt-body">
           <div className="tkt-header">
-            <span className="tkt-brand">QUEUE</span>
-            <span className="tkt-date">{formatDate(Date.now())}</span>
+            <span className="tkt-brand">REDE8</span>
+            <span className="tkt-date">{formatDate(ticket.createdAt)}</span>
           </div>
 
           {cat && (
@@ -40,9 +40,8 @@ export default function TicketView({ ticket, categories, tickets, onPrint, onClo
           )}
 
           <div className="tkt-number-section">
-            <span className="tkt-your">YOUR NUMBER</span>
+            <span className="tkt-your">SUA SENHA</span>
             <div className="tkt-num">{ticket.displayNumber || padNumber(ticket.number)}</div>
-            <div className="tkt-num-ar ar">{toArabicNumerals(ticket.number)}</div>
           </div>
 
           <div className="tkt-divider">
@@ -53,33 +52,33 @@ export default function TicketView({ ticket, categories, tickets, onPrint, onClo
 
           <div className="tkt-details">
             <div className="tkt-row">
-              <span>Time</span>
-              <span>{formatTime(Date.now())}</span>
+              <span>Hora</span>
+              <span>{formatTime(ticket.createdAt)}</span>
             </div>
             <div className="tkt-row">
-              <span>Position</span>
+              <span>Na sua fila</span>
               <span>#{ahead + 1}</span>
             </div>
             <div className="tkt-row">
-              <span>Est. Wait</span>
+              <span>Espera estimada*</span>
               <span>~{waitMin} min</span>
             </div>
           </div>
 
           <div className="tkt-qr">
             <QRCodeSVG value={trackUrl} size={80} bgColor="#fafafa" fgColor="#111" level="M" />
-            <span className="tkt-qr-hint">Scan to track your position</span>
+            <span className="tkt-qr-hint">Acompanhe sua senha pelo QR Code</span>
           </div>
 
           <div className="tkt-footer">
-            <p>Please wait for your number to be called</p>
-            <p className="ar">يرجى الانتظار حتى يتم مناداة رقمك</p>
+            <p>Aguarde sua senha ser chamada no painel</p>
+            <p>É da gente. É daqui.</p><p>*Estimativa; a prioridade pode alterar a ordem.</p>
           </div>
         </div>
 
         <div className="tkt-actions no-print">
-          <button className="tkt-btn tkt-btn--print" onClick={onPrint}>Print</button>
-          <button className="tkt-btn tkt-btn--done" onClick={onClose}>Done</button>
+          <button className="tkt-btn tkt-btn--print" onClick={onPrint}>Imprimir senha</button>
+          <button className="tkt-btn tkt-btn--done" onClick={onClose}>Finalizar</button>
         </div>
       </motion.div>
     </motion.div>

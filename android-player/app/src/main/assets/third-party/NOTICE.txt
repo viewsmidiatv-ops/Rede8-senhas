@@ -1,0 +1,4 @@
+This application includes ZXing Core 3.5.3.
+Copyright ZXing authors. Licensed under the Apache License, Version 2.0.
+Project: https://github.com/zxing/zxing
+The license is provided in Apache-2.0.txt alongside this notice.

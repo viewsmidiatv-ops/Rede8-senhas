@@ -1,3 +1,4 @@
+import process from 'node:process'
 import express from 'express'
 import { createServer } from 'http'
 import { Server } from 'socket.io'
@@ -35,8 +36,12 @@ setInterval(() => {
 let lastResetDate = null
 setInterval(async () => {
   const now = new Date()
-  const todayStr = now.toDateString()
-  if (now.getHours() === 1 && now.getMinutes() < 5 && lastResetDate !== todayStr) {
+  const parts = Object.fromEntries(new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Bahia', year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
+  }).formatToParts(now).map(p => [p.type, p.value]))
+  const todayStr = `${parts.year}-${parts.month}-${parts.day}`
+  if (parts.hour === '01' && Number(parts.minute) < 5 && lastResetDate !== todayStr) {
     lastResetDate = todayStr
     await resetQueue(state)
     addAudit(state, 'admin:auto-reset', 'system', 'Daily 1:00 AM reset')
@@ -85,7 +90,7 @@ function getPublicState() {
     tickets: state.tickets,
     nextTicketNumber: state.nextTicketNumber,
     announcements: state.announcements,
-    settings: state.settings,
+    settings: { ...state.settings, elevenLabsApiKey: '' },
     branches: state.branches,
     activeBranch: state.activeBranch,
     auditLog: state.auditLog.slice(0, 100),
@@ -136,6 +141,7 @@ app.post('/api/ticket', (req, res) => {
   const { categoryId } = req.body
   if (!categoryId) return res.status(400).json({ error: 'categoryId required' })
   const ticket = takeTicket(state, categoryId)
+  if (!ticket) return res.status(400).json({ error: 'Tipo de atendimento inválido' })
   addAudit(state, 'ticket:take', 'api', `#${ticket.number}`)
   fireWebhooks('ticket:take', ticket)
   broadcast()
@@ -151,7 +157,7 @@ app.get('/api/audit', (_, res) => {
 })
 
 // Global ElevenLabs key — used as fallback if no per-instance key is set
-const GLOBAL_ELEVENLABS_KEY = 'sk_edd298b7eed05da619d536b6ea4d36e5157019b7dcc6cb72'
+const GLOBAL_ELEVENLABS_KEY = process.env.ELEVENLABS_API_KEY || ''
 
 // ElevenLabs TTS — server-side using the SDK
 app.post('/api/tts', async (req, res) => {
@@ -238,6 +244,7 @@ io.on('connection', (socket) => {
     }
     socket.data.ticketTakes.push(now)
     const ticket = takeTicket(state, categoryId)
+    if (!ticket) { cb?.({ error: 'Tipo de atendimento inválido' }); return }
     addAudit(state, 'ticket:take', 'kiosk', `#${ticket.number} [${categoryId}]`)
     fireWebhooks('ticket:take', ticket)
 
@@ -249,7 +256,7 @@ io.on('connection', (socket) => {
         ticket.calledAt = Date.now()
         best.currentTicket = ticket.number
         best.lastActiveAt = Date.now()
-        io.emit('ticket:announced', { ticketNumber: ticket.number, counterId: best.id, action: 'next', counterName: best.name, categoryId: ticket.categoryId, at: Date.now() })
+        io.emit('ticket:announced', { ticketNumber: ticket.displayNumber || ticket.number, counterId: best.id, action: 'next', counterName: best.name, categoryId: ticket.categoryId, at: Date.now() })
         fireWebhooks('ticket:called', ticket)
       }
     }
@@ -266,7 +273,7 @@ io.on('connection', (socket) => {
     if (ticket) {
       const cName = state.counters.find(c => c.id === counterId)?.name || ''
       addAudit(state, 'ticket:call', cName, `#${ticket.number}`)
-      io.emit('ticket:announced', { ticketNumber: ticket.number, counterId, action: 'next', counterName: cName, categoryId: ticket.categoryId, at: Date.now() })
+      io.emit('ticket:announced', { ticketNumber: ticket.displayNumber || ticket.number, counterId, action: 'next', counterName: cName, categoryId: ticket.categoryId, at: Date.now() })
       fireWebhooks('ticket:called', { ticket, counter: cName })
     }
     cb?.(ticket)
@@ -277,7 +284,7 @@ io.on('connection', (socket) => {
     if (ticket) {
       const cName = state.counters.find(c => c.id === counterId)?.name || ''
       addAudit(state, 'ticket:recall', cName, `#${ticket.number}`)
-      io.emit('ticket:announced', { ticketNumber: ticket.number, counterId, action: 'recall', counterName: cName, categoryId: ticket.categoryId, at: Date.now() })
+      io.emit('ticket:announced', { ticketNumber: ticket.displayNumber || ticket.number, counterId, action: 'recall', counterName: cName, categoryId: ticket.categoryId, at: Date.now() })
     }
     cb?.(ticket)
   })
@@ -329,7 +336,7 @@ io.on('connection', (socket) => {
     if (ticket) {
       const cName = state.counters.find(c => c.id === counterId)?.name || ''
       addAudit(state, 'ticket:unhold', cName, `#${ticket.number}`)
-      io.emit('ticket:announced', { ticketNumber: ticket.number, counterId, action: 'next', counterName: cName, categoryId: ticket.categoryId, at: Date.now() })
+      io.emit('ticket:announced', { ticketNumber: ticket.displayNumber || ticket.number, counterId, action: 'next', counterName: cName, categoryId: ticket.categoryId, at: Date.now() })
     }
     cb?.(ticket)
   })
@@ -568,7 +575,8 @@ if (existsSync(distPath)) {
 }
 
 const PORT = process.env.PORT || 3210
-http.listen(PORT, () => {
+const HOST = process.env.HOST || '127.0.0.1'
+http.listen(PORT, HOST, () => {
   console.log(`Queue server running on port ${PORT}`)
   console.log(`REST API: http://localhost:${PORT}/api/status`)
 })

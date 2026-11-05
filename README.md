@@ -1,261 +1,65 @@
-<div align="center">
+# Rede8 • Senhas
 
-# Queue System
+Piloto de atendimento da Rede8, adaptado do [Queue System](https://github.com/krispx2811/Queue-System), sob licença MIT. Mantidos os créditos em `LICENSE`.
 
-**A modern, real-time queue management system built for businesses of any size.**
+## Telas
 
-Manage walk-in customers with multi-counter support, bilingual voice announcements, live displays, printed tickets with QR tracking, analytics dashboards, and 23 display layouts.
+| Endereço | Uso |
+| --- | --- |
+| `/retirar` | Tablet: escolher atendimento normal ou prioritário e emitir senha |
+| `/recepcao` | Computador: selecionar guichê, chamar, repetir e concluir |
+| `/painel` | TV: chamadas e fila, com voz em português |
+| `/track` | Consulta da senha; o comprovante contém um QR Code |
 
-[![Built with React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=white)](https://react.dev)
-[![Socket.IO](https://img.shields.io/badge/Socket.IO-4-010101?logo=socket.io&logoColor=white)](https://socket.io)
-[![Express](https://img.shields.io/badge/Express-5-000000?logo=express&logoColor=white)](https://expressjs.com)
-[![Vite](https://img.shields.io/badge/Vite-8-646CFF?logo=vite&logoColor=white)](https://vite.dev)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+As rotas originais `/kiosk`, `/admin` e `/display` continuam disponíveis.
 
-</div>
+## Iniciar o piloto no computador
 
----
-
-## Features
-
-### Core Queue Management
-- **Multi-counter support** — unlimited counters, each operated independently
-- **Service categories** — General, Payments, Inquiries, Accounts (fully customizable)
-- **Custom ticket prefixes** — `G-001`, `P-002`, `A-003` per category
-- **Ticket hold/park** — put a ticket on hold and serve the next person
-- **Transfer between categories** — move tickets mid-service
-- **Smart routing** — auto-assign tickets to the least busy counter
-- **Operator notes** — add notes to any ticket
-
-### Display Screen (23 Layouts)
-| Layout | Style |
-|--------|-------|
-| Classic | Counter grid with animated numbers |
-| Minimal | Single large centered number |
-| Ticker | Horizontal counter cards |
-| List | Split view: serving + full queue |
-| Spotlight | Hero number + sidebar queue |
-| Dual | Serving left, upcoming right |
-| Board | Airport departure board |
-| Cards | Floating 3D cards with depth |
-| Stadium | Scoreboard matrix grid |
-| Terminal | Retro green DOS console |
-| News | TV news channel layout |
-| Table | Spreadsheet with all details |
-| Orbit | Numbers rotating in a ring |
-| Bubble | Floating circles with drift |
-| Tower | Vertical stack with perspective |
-| Mosaic | Color-coded tile grid |
-| Split | Big top number + strip below |
-| Sidebar | Queue list left, hero right |
-| Zen | Just the number, nothing else |
-| Banner | Horizontal continuous scroll |
-| Hospital | Room/doctor card layout |
-| Bank | LED dot-matrix red display |
-| Restaurant | Order ready / preparing |
-
-### Voice Announcements
-- **Google Translate TTS** — HD quality, natural-sounding
-- **4 languages** — English, Arabic, Urdu, French
-- **5 sound themes** — Default, Bell, Chime, Ding, Dual
-- **Voice test panel** — preview any language from settings
-
-### Customer Kiosk
-- Category selection with estimated wait times
-- Printable tickets with QR code (thermal printer compatible)
-- Real-time "people waiting" count
-- Bilingual interface
-
-### Ticket Tracking
-- Scan QR code or enter ticket number at `/track`
-- Live position updates every 10 seconds
-- Sound alert when your turn is near
-- Status indicators: waiting, serving, served, skipped
-
-### Analytics Dashboard
-- **Daily stats** — served, waiting, skipped, avg wait/service time
-- **Peak hours** — 24-hour bar chart
-- **Weekly & monthly trends** — 7-day and 30-day charts
-- **Busiest day of week** — all-time distribution
-- **Operator performance** — tickets served & avg time per operator
-- **Service time by category** — compare category efficiency
-- **Wait time histogram** — distribution buckets
-- **CSV export** — download full ticket history
-- **PDF report** — print-ready formatted report
-- **Auto-refresh** — updates every 30 seconds
-
-### Admin & Management
-- **Role-based access** — operators see Queue tab only, admins see everything
-- **Admin password protection** — configurable from settings
-- **Category management** — add, edit, delete, set prefixes and colors
-- **Counter management** — add, rename, delete counters
-- **Audit log** — every action logged with timestamp, actor, details
-- **Shift management** — auto clock-in/out tracking
-- **Multi-branch support** — add and switch between locations
-- **Webhook notifications** — POST to external URLs on queue events
-- **Session persistence** — operators stay logged in on page refresh
-
-### Customization
-- **Light / Dark theme** — system-wide toggle
-- **10 accent colors + custom hex** — change the primary color
-- **4 animated backgrounds** — Particles, Waves, Gradient, Aurora
-- **Custom CSS injection** — full control for advanced styling
-- **Custom logo** — URL-based branding on display and kiosk
-- **Digital signage** — rotate images/videos on display screen
-- **Scrolling announcements** — custom messages on display banner
-- **Floor map** — visual counter layout overlay
-- **Multi-language UI** — English, Arabic, Urdu, French interface
-
-### Technical
-- **Real-time sync** — Socket.IO WebSockets across all devices
-- **REST API** — full API for third-party integration
-- **Weather widget** — live temperature on display (Open-Meteo, no API key)
-- **Android fullscreen** — wake lock + fullscreen API support
-- **Thermal printer support** — 80mm receipt-optimized print layout
-
----
-
-## Quick Start
+Use Node.js 22.12 ou superior.
 
 ```bash
-# Clone
-git clone https://github.com/krispx2811/Queue-System.git
-cd Queue-System
-
-# Install
-npm install
-
-# Configure Supabase
-cp .env.example .env
-# Edit .env with your Supabase credentials
-
-# Run schema once in Supabase SQL Editor (server/schema.sql)
-
-# Run (starts both server + frontend)
-npm run dev
+npm ci
+npm run build
+npm run server
 ```
 
-Open [http://localhost:5173](http://localhost:5173)
+Abra `http://localhost:3210`. Por padrão, o servidor aceita conexões somente do próprio computador. O piloto funciona sem Supabase, salvando os dados em `server/data.json` (ignorado pelo Git). Não apague esse arquivo durante o funcionamento.
 
----
+Para desenvolvimento: `npm run dev` inicia servidor e Vite; abra `http://localhost:5173`.
 
-## Deploy to Render (Free)
+Os dados iniciais incluem dois guichês e duas filas. A numeração é única, compartilhada entre filas: `N-001`, `P-002`, `N-003` etc. A fila prioritária tem preferência; dentro de cada tipo, vale a ordem de emissão. Encaminhamentos explícitos para um guichê conservam a precedência original. A preferência contínua pode prolongar a espera normal; validar a regra operacional no piloto.
 
-One-click deploy from GitHub:
+Os padrões são aplicados apenas em armazenamento novo. Dados existentes são preservados e precisam ser revisados pelo administrador; não há migração automática das filas antigas.
 
-1. Sign up at [render.com](https://render.com)
-2. **New** → **Web Service** → connect your GitHub repo
-3. Render auto-detects `render.yaml`
-4. Add environment variables under "Environment":
-   - `SUPABASE_URL`
-   - `SUPABASE_SERVICE_KEY`
-   - `SUPABASE_ANON_KEY`
-5. Click **Create Web Service** — done in ~3 minutes
+## Acesso de demonstração
 
-**Prevent spin-down:** Render free tier sleeps after 15 min idle. Set up a free monitor at [uptimerobot.com](https://uptimerobot.com) to ping `https://your-app.onrender.com/api/status` every 5 minutes.
+As senhas herdadas do projeto servem apenas para testar a interface: atendente `FEC@1` e administração `2811`. **Não são autenticação segura**: estão no JavaScript e os eventos do servidor ainda não exigem sessão. Alterar essas senhas pela interface não corrige essa limitação.
 
----
+Este piloto deve permanecer no computador de testes. Antes de expor em rede ou hospedar, implementar autenticação e autorização no servidor, restringir dados transmitidos ao painel público, revisar persistência/backup e testar os dispositivos reais. Não inserir nomes ou dados clínicos no piloto.
 
-## Architecture
+A chave de voz presente no código original foi removida dos padrões e da sincronização pública. Ela permanece no histórico original; deve ser considerada exposta e revogada pelo responsável pelo serviço. Nenhuma chave ou conta de terceiros é necessária para a voz padrão deste piloto.
 
-```
-queue-system/
-  server/
-    index.js          Express + Socket.IO server (port 3210)
-    store.js          In-memory store with JSON persistence
-  src/
-    context/          Socket.IO React context
-    components/       Shared UI components
-    hooks/            Voice, formatting hooks
-    pages/
-      Landing/        Home page with live stats
-      Dashboard/      Full overview with inline controls
-      Admin/          Operator panel + admin settings
-      Display/        TV/monitor screen (23 layouts)
-      Kiosk/          Customer self-service
-      Track/          Ticket position tracking
-    utils/            i18n, CSV, sounds, formatters
+## Impressão e áudio
+
+O comprovante usa largura de 58 mm, com página de 110 mm e conteúdo dentro da área imprimível. A impressão atual abre a caixa de impressão do navegador. **Não existe ainda integração Bluetooth/USB nem impressão automática Android**: escolher a impressora e integrar o SDK ou aplicativo de impressão antes de instalar o totem.
+
+O painel usa a voz nativa do navegador em `pt-BR`. A voz precisa estar disponível no dispositivo. Toque no painel para liberar o áudio e faça um teste antes do atendimento. O volume do sistema também precisa estar habilitado.
+
+A logomarca oficial não está incluída: a versão usa o nome Rede8, cor roxa `#342E4E` e a assinatura “É da gente. É daqui.”. O campo de URL da logomarca permanece disponível nas configurações.
+
+## Persistência e virada do dia
+
+O armazenamento JSON atende a um único processo de servidor. Para produção, usar banco persistente e revisar os acessos. A integração Supabase original permanece opcional, mas não foi provisionada nem testada nesta etapa.
+
+A rotina herdada reinicia a fila entre 01:00 e 01:04, agora no fuso `America/Bahia`, e depende de o servidor estar ligado nesse intervalo. Não é uma virada de dia garantida após parada/reinício. Essa rotina também limpa o histórico de senhas; definir retenção e arquivamento antes de uso real.
+
+## Validação
+
+```bash
+npm test
+npm run test:smoke
 ```
 
-## REST API
+Os testes cobrem prioridade/FIFO, guichês simultâneos, categoria inválida, filtros e encaminhamentos, textos de voz, emissão pela API, sincronização entre clientes e as três rotas. O teste integrado usa arquivo temporário e não modifica a fila local.
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/api/status` | Queue status, counters, categories |
-| `GET` | `/api/tickets` | All tickets |
-| `GET` | `/api/ticket/:number` | Ticket position lookup |
-| `POST` | `/api/ticket` | Create ticket `{ categoryId }` |
-| `GET` | `/api/analytics` | Full analytics data |
-| `GET` | `/api/audit` | Audit log |
-
-Base URL: `http://localhost:3210`
-
-## WebSocket Events
-
-<details>
-<summary>Click to expand all events</summary>
-
-**Ticket Operations**
-- `ticket:take` — issue new ticket
-- `ticket:call` — call next for a counter
-- `ticket:recall` — recall current ticket
-- `ticket:skip` — skip current ticket
-- `ticket:complete` — mark as served
-- `ticket:hold` — put on hold
-- `ticket:unhold` — resume held ticket
-- `ticket:transfer` — transfer to another category
-- `ticket:note` — add/edit note
-
-**Counter Operations**
-- `counter:register` — join a counter
-- `counter:toggle` — open/close
-- `counter:update` — rename, set categories
-- `counter:add` — create new counter
-- `counter:delete` — remove counter
-
-**Admin Operations**
-- `admin:reset` — clear all tickets
-- `admin:announcement` — add/remove announcements
-- `admin:analytics` — get today's analytics
-- `admin:advancedAnalytics` — weekly trends, operator stats
-- `admin:monthlyAnalytics` — 30-day trends, histogram
-- `admin:export` — export ticket data
-
-**Settings**
-- `settings:update` — update any setting
-- `auth:check` — validate password
-- `auth:setPasswords` — set admin/operator passwords
-
-</details>
-
-## Configuration
-
-All settings are configurable from the Admin panel at runtime — no config files needed. Settings persist to `server/data.json` automatically.
-
-## Tech Stack
-
-| Layer | Technology |
-|-------|-----------|
-| Frontend | React 19, Vite 8, Framer Motion |
-| Backend | Express 5, Socket.IO 4 |
-| Voice | Google Translate TTS + Web Speech API |
-| State | In-memory + JSON file persistence |
-| Routing | React Router 7 |
-| QR Codes | qrcode.react |
-| Weather | Open-Meteo API (free, no key) |
-
-## Browser Support
-
-- Chrome / Edge (desktop + Android)
-- Safari (desktop + iOS)
-- Firefox
-
-## License
-
-MIT
-
----
-
-<div align="center">
-  <sub>Built for real-world queue management. No cloud dependencies. No subscriptions. Just run it.</sub>
-</div>
+`npm run lint` já apresenta erros no projeto original. A tradução dos menus avançados e dos 23 layouts também precisa de revisão posterior. A validação visual em navegador e a impressão física não foram concluídas neste ambiente.

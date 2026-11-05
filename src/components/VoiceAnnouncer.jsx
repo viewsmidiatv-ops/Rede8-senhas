@@ -115,6 +115,7 @@ export default function VoiceAnnouncer() {
     // attaches categoryId to every ticket:announced event.
     const cat = state.categories.find(c => c.id === announced.categoryId)
     const categoryNames = cat ? {
+      pt: cat.name,
       en: cat.name,
       ar: cat.nameAr || cat.name,
       ur: cat.nameUr || cat.name,
