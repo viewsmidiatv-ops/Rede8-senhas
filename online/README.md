@@ -67,6 +67,6 @@ Esta é a versão web: depende de internet, sem download offline, pareamento de 
 
 - `npm run test:media`: testa os endpoints reais com R2 em Miniflare (identidade simulada apenas no fixture), incluindo autenticação, perfis, origem, assinatura e resposta parcial de vídeo.
 
-## Próxima versão: ativação das TVs
+## Ativação das TVs pelo Supabase
 
-O painel `/aparelhos` e o APK nativo 0.2.0 estão preparados para ativação por QR code/código. A configuração remota ainda aguarda aplicação da migração Supabase: ver [docs/SUPABASE-APARELHOS.md](docs/SUPABASE-APARELHOS.md). Sem as variáveis de integração, o piloto continua utilizando o D1/R2 e o novo formulário fica desabilitado. Não substituir o APK em operação antes de concluir e validar o servidor.
+Abra `/aparelhos` como administrador para conferir um código temporário, autorizar uma TV e revogar aparelhos. O APK 0.2.0 gera QR code/código sem login incorporado. A fila usa o Supabase após a inicialização idempotente a partir dos dados D1; os acessos administrativos continuam autenticados com ChatGPT. O painel permite sincronizar arquivos R2 para o bucket privado usado pelas TVs. Veja [docs/SUPABASE-APARELHOS.md](docs/SUPABASE-APARELHOS.md).

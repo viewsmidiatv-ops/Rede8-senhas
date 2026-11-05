@@ -2,13 +2,11 @@
 
 Projeto autorizado: Rede8 Senhas, referência `vhsihfbhxqrxtkyfyebr`, região `sa-east-1`.
 
-## Estado desta entrega
+## Configuração remota
 
-Código implementado e verificado localmente. As duas tentativas de `apply_migration` retornaram confirmação expirada; consulta posterior confirmou zero tabelas no schema public. Portanto a migração não foi aplicada, a Edge Function não foi publicada e as variáveis de integração não foram configuradas. A publicação web mantém o armazenamento anterior enquanto essas variáveis estiverem ausentes. O formulário de aparelhos informa que falta configurar a integração.
+As tabelas e funções SQL foram aplicadas pelo administrador no SQL Editor. A migração local é `supabase/migrations/20261105003047_device_pairing.sql`. Não reaplicar esse arquivo sobre o banco já criado. A função `rls_auto_enable()` permanece com execução pública revogada. As tabelas têm RLS e sem políticas de acesso direto para clientes: os avisos informativos de “RLS enabled no policy” refletem essa negação intencional. O acesso é mediado pela API autenticada de aparelhos.
 
-Arquivo SQL completo: `supabase/migrations/20261105003047_device_pairing.sql`. Pode ser revisado e aplicado no SQL Editor do projeto correto, ou pela confirmação do conector. Ele cria somente estruturas novas e o bucket privado; inclui revogação da execução pública da função existente `rls_auto_enable()`, identificada nos avisos do projeto. A revogação não desativa o gatilho executado pelo proprietário do banco.
-
-Depois da aplicação, verificar as tabelas e os advisors antes de continuar. Não reaplicar uma migração já aplicada. O nome da migração remota e a versão local devem ser reconciliados ao retomar; não alterar SQL já aplicado.
+A Edge Function `tv-device` lê suas credenciais de servidor do ambiente Supabase. O Site recebe a URL em `TV_DEVICE_URL` e o segredo de integração em `TV_BRIDGE_KEY`, ambos configurados no ambiente hospedado. O banco guarda somente o hash da chave, vinculado à instalação `rede8` e à página administrativa `/aparelhos`.
 
 ## Fluxo do aparelho
 
@@ -20,14 +18,11 @@ A autorização do aparelho é um segredo aleatório de 256 bits, cifrado no And
 
 A função `supabase/functions/tv-device/index.ts` lê a chave secreta somente do ambiente padrão do Supabase. O módulo handler usa os serviços REST/Storage internos, com credenciais de servidor. Tabelas têm RLS sem política para clientes e privilégios restritos a service_role; RPCs são SECURITY INVOKER e com EXECUTE restrito a service_role. O painel continua com autenticação ChatGPT e seus perfis verificados no D1. O APK é somente leitura.
 
-Ainda a fazer após a confirmação SQL:
+Ao ativar a integração, o primeiro acesso copia a fila D1 existente para o Supabase preservando revisão, senhas e configurações. A operação seed é idempotente e nunca sobrescreve fila remota existente. A fila passa a usar leitura e compare-and-swap no Supabase. Erros remotos não fazem fallback para uma segunda fila D1. Os vínculos de contas ChatGPT e os perfis administrativos continuam no D1.
 
-1. Gerar uma chave aleatória de integração de 32 bytes, sem imprimi-la nem gravá-la em código. Guardar seu SHA-256 em tv_instances com id `rede8` e verification_url `https://rede8-senhas-piloto.grupo-ortocd-0618.chatgpt.site/aparelhos`.
-2. Publicar a função `tv-device`, com autenticação própria e as verificações implementadas.
-3. Configurar as variáveis secretas do Site `TV_BRIDGE_KEY` e a URL `TV_DEVICE_URL` via ferramenta de ambiente. A chave bruta fica somente no servidor Site, nunca no navegador ou APK.
-4. Publicar o mesmo código. O primeiro acesso ao painel copia a fila existente D1 para Supabase preservando revisão, senhas e configurações. A operação seed é idempotente e nunca sobrescreve fila remota existente. Em seguida, a fila usa leitura e compare-and-swap no Supabase. Erros remotos não fazem fallback para uma segunda fila D1.
-5. Em Aparelhos, sincronizar arquivos de mídia do R2 para o bucket privado tv-media, por arquivo. O procedimento é idempotente e mantém a origem. Novos arquivos adicionados à playlist precisam de sincronização antes do download pelo APK. Não migra nem apaga os arquivos R2.
-6. Fazer teste real de geração, expiração, aprovação, leitura, cópia de mídia, isolamento e revogação; consultar advisors e corrigir avisos. Só então entregar o novo APK para uso.
+Em Aparelhos, sincronize os arquivos de mídia para o bucket privado tv-media, por arquivo. O procedimento é idempotente e mantém a origem R2. Novos arquivos adicionados à playlist também precisam de sincronização antes do download pelo APK.
+
+O endpoint de manutenção `/api/integration/bootstrap` permite inicializar a fila e sincronizar um arquivo existente por chamada. Exige o segredo do servidor e a barreira de acesso privada do Site; não aceita identidade de visitante simulada, não é um login alternativo e não retorna informações de contas. Seu uso é apenas por serviços autorizados.
 
 Caminho futuro: substituir também a autenticação administrativa e os vínculos de usuários por Supabase Auth, após definir os administradores. Essa mudança não faz parte desta etapa e não pode redefinir o proprietário usando o primeiro visitante de um endpoint público.
 
@@ -42,4 +37,4 @@ Caminho futuro: substituir também a autenticação administrativa e os vínculo
 
 Comandos: `node --test tests/device-handler.test.mjs`; para o teste SQL, instale `@electric-sql/pglite@0.3.14` em ambiente de testes e execute `PGLITE_MODULE=/caminho/node_modules/@electric-sql/pglite/dist/index.js node tests/device-schema.test.mjs`.
 
-Sem verificação ponta a ponta no Supabase remoto e sem teste físico. O preview visual também não foi validado neste fluxo, devido à autenticação da hospedagem e à indisponibilidade anterior do preview.
+Validação física no aparelho Android e revisão visual autenticada continuam pendentes. Os testes automatizados não certificam codecs ou o mecanismo de voz instalado no equipamento.

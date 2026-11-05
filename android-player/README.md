@@ -1,8 +1,8 @@
 # Views TV — piloto Android 0.2.0
 
-Player de chamadas e mídia indoor com ativação por QR code/código, sem WebView de login. Esta versão está compilada e validada localmente, mas ainda não liberada para operação: o servidor Supabase aguarda aplicação e validação da migração. O APK 0.1.0 permanece a versão anteriormente entregue.
+Player de chamadas e mídia indoor com ativação por QR code/código, sem WebView de login. A integração remota usa o projeto Rede8 Senhas no Supabase e o painel administrativo existente. A versão 0.2.0 substitui o login incorporado da 0.1.0 por autorização do aparelho; a validação física de voz, codec e reprodução contínua continua necessária.
 
-## Após a integração do servidor
+## Instalar e ativar
 
 1. Instale o APK 0.2.0 no Android 8+ (API 26), com a mesma assinatura de desenvolvimento do piloto anterior.
 2. Abra Views TV e informe o nome do aparelho. A conexão da Rede8 já está preenchida. Para outro cliente, configure a URL do painel e a URL Supabase de conexão mostrada na aba Aparelhos.
