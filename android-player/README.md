@@ -1,55 +1,40 @@
-# Views TV — piloto Android 0.1.0
+# Views TV — piloto Android 0.2.0
 
-Player nativo de TV corporativa e chamadas, usando a mesma base web da Rede8. APK comum: cada aparelho recebe a URL HTTPS da instalação do cliente. O painel web continua sendo a origem de serviços, chamadas, identidade, textos, voz e playlist. Não altera o layout do painel web nem seu banco.
+Player de chamadas e mídia indoor com ativação por QR code/código, sem WebView de login. Esta versão está compilada e validada localmente, mas ainda não liberada para operação: o servidor Supabase aguarda aplicação e validação da migração. O APK 0.1.0 permanece a versão anteriormente entregue.
 
-## Instalar e usar
+## Após a integração do servidor
 
-1. Copie `Views-TV-0.1.0-piloto.apk` para o aparelho e instale pelo gerenciador de arquivos. Se solicitado, autorize a instalação para esse gerenciador.
-2. Abra **Views TV · Piloto**. Compatível com Android 8.0/API 26 ou superior, orientação horizontal; aparece também no launcher Android TV.
-3. A URL da Rede8 já vem preenchida. Para outro cliente, informe sua URL inicial `https://…chatgpt.site`.
-4. Toque em **Entrar e configurar aparelho**, entre com a conta ChatGPT autorizada na instalação e, depois de concluir o login, toque em **Concluir login e abrir TV**.
-5. Aguarde o indicador de mídias locais. Configure os conteúdos em `/configuracoes` → Mídia indoor no computador. O aplicativo verifica a fila a cada 2 segundos e os downloads pendentes a cada 30 segundos.
-6. Pressione **Voltar/Menu** ou toque em **Opções** para renovar o login, escolher e testar a voz instalada no Android ou mudar de cliente.
+1. Instale o APK 0.2.0 no Android 8+ (API 26), com a mesma assinatura de desenvolvimento do piloto anterior.
+2. Abra Views TV e informe o nome do aparelho. A conexão da Rede8 já está preenchida. Para outro cliente, configure a URL do painel e a URL Supabase de conexão mostrada na aba Aparelhos.
+3. Selecione Gerar QR code e código de ativação.
+4. No celular ou computador, abra o QR code. Entre no painel com sua conta autorizada, confira o código e aprove o aparelho. Alternativamente, abra `/aparelhos` e digite o código.
+5. A TV abre o player automaticamente. Em Aparelhos, sincronize os conteúdos existentes para que o aplicativo possa baixá-los do armazenamento privado.
 
-O login é feito em WebView sem ponte JavaScript para o código nativo. Provedores de identidade podem recusar login incorporado; isso precisa ser validado no aparelho. Não foi criado login por código, token compartilhado, nova conta, nem alterada a privacidade do Site. Se o provedor recusar, não instalar credenciais ou contornar essa restrição: a próxima etapa será uma integração de identidade suportada para o aparelho.
+Códigos expiram em dez minutos e só podem ser usados uma vez. O administrador pode revogar a autorização; conteúdos já baixados podem continuar localmente. O aplicativo não emite nem chama senhas e não tem acesso administrativo. As chamadas precisam de conexão. O APK não contém chaves de serviço Supabase nem credenciais ChatGPT.
 
-## O que este APK implementa
+## Funcionamento
 
-- Tela cheia e orientação horizontal; mantém a tela ligada enquanto o aplicativo está aberto.
-- Busca somente dados de leitura. O aparelho não emite senhas, chama pacientes nem modifica a fila.
-- Última senha, guichê, histórico e mensagem. Aplica nome, cores, texto, proporção/lado e enquadramento da mídia do painel.
-- Voz nativa pt-BR, velocidade e volume do painel, frase de chamada/repetição e aviso sonoro. A escolha da voz é específica do aparelho; não reutiliza identificadores de vozes do navegador. Opções locais e dependentes de rede são identificadas no seletor.
-- Download de mídias autenticado; nomes seguros, HTTPS, sem encaminhar cookies para outros servidores ou seguir redirecionamentos dos endpoints.
-- Cada cliente tem sua pasta de cache separada. Até 30 conteúdos, 20 MB por arquivo, teto local de 640 MiB e reserva de espaço livre de 32 MiB. Downloads incompletos não viram arquivos reproduzíveis.
-- Fotos com decodificação reduzida para Full HD, temporização de 5–300 segundos. Vídeos locais sem áudio, até o fim ou limite de 5 minutos. Erros de decodificação avançam ao próximo conteúdo.
-- Após download, mídias continuam sem internet, inclusive reabrindo o aplicativo. As chamadas deixam de aparecer após 15 segundos sem atualização. Ao reconectar, atualiza a tela e não anuncia chamadas antigas acumuladas na desconexão.
-- Saída da conta com confirmação local remove cookies e conteúdos do aparelho.
+Tela cheia horizontal, voz nativa pt-BR (escolha local nas opções), frases/velocidade/volume do painel, chamadas, histórico, lado/proporção e reprodução de mídias sem áudio. O segredo de autorização é cifrado com chave não exportável do Android Keystore. Requisições usam HTTPS sem seguir redirecionamentos e com credencial restrita ao servidor configurado.
 
-## Limites do piloto
+Fotos são reduzidas para Full HD na decodificação; vídeos locais ficam sempre mudos. A reprodução segue a playlist, com teto de cinco minutos por vídeo. Até 30 conteúdos e 20 MiB por arquivo; cache máximo de 640 MiB. Após 15 segundos sem atualização, chamadas ficam ocultas. Ao reconectar não são anunciadas chamadas antigas.
 
-Não validado em aparelho físico ou emulador. Os testes concluídos são compilação real do APK, assinatura e regras Java. Testar primeiro no PROSB-3000/16GB: instalação, login, voz pt-BR, vídeo H.264 Full HD, perda/retorno de rede e várias horas de reprodução. WebM e outros codecs dependem do sistema instalado. Uma voz identificada como dependente de rede não funciona offline.
+## Compilar e testar
 
-Não há pareamento por código, execução automática após ligar, inicialização como launcher, modo quiosque administrado, atualizações remotas, impressão, agendamento ou publicação na Play Store. O APK usa o player nativo com disposição funcional inicial; revisão visual ficará para depois, conforme solicitado. Não é uma cópia visual exata do painel web.
-
-Assinatura de desenvolvimento para o piloto. Preserve a chave de desenvolvimento em armazenamento privado para instalar futuras atualizações sem desinstalar. Não reutilize esta chave em produção; a distribuição comercial precisa de chave de lançamento própria. Ao trocar a chave, será necessário desinstalar o piloto antes de instalar a versão final.
-
-## Compilar
-
-Não há dependências externas no código Android. Java 17, Python 3 e SDK oficial (platform 36, Build Tools 36.0.0) são suficientes.
+Java 17, Python 3, SDK platform 36 e Build Tools 36.0.0. O build baixa ZXing Core 3.5.3 do Maven Central e verifica SHA-256 fixo antes de compilar. Esta biblioteca é usada somente para gerar QR code localmente. Não usa um serviço externo de geração de QR.
 
 ```sh
-bash scripts/test.sh
 python3 scripts/build-apk.py --sdk /caminho/Android/Sdk
+bash scripts/test.sh
 ```
 
-O script executa AAPT2, javac, D8, zipalign e apksigner. Gera `build/Views-TV-0.1.0-piloto.apk` e verifica assinatura e manifesto. Caminhos alternativos podem ser passados em `--tools`, `--android-jar` e `--keystore`. A chave padrão é a de desenvolvimento em `~/.android/debug.keystore`, com as credenciais públicas convencionais de debug Android. Nunca adicione chaves ao Git. O build validado usa o script direto do SDK; não depende de Gradle nem baixa bibliotecas de terceiros.
+O script executa AAPT2, javac, D8, zipalign e apksigner. Saída `build/Views-TV-0.2.0-piloto.apk`. Os testes verificam URLs, nomes seguros, limites, tempo de desconexão, textos e geração/decodificação do QR code. Compilação real e assinatura v2/v3 aprovadas. Validação física e pareamento remoto ainda pendentes.
 
-Documentação oficial: https://developer.android.com/tools e https://developer.android.com/build/building-cmdline
+Use a chave privada de desenvolvimento preservada do piloto para atualizar uma instalação existente. Nunca adicione chaves ao Git ou use esta chave de desenvolvimento para distribuição comercial. O build utiliza por padrão `~/.android/debug.keystore`; caminhos alternativos disponíveis em `--keystore`, `--tools` e `--android-jar`.
 
-## Validação concluída
+Não há inicialização automática após ligar, gerenciamento de quiosque, atualização remota, impressão ou publicação na Play Store. Revisão de layout fica para depois, conforme solicitado.
 
-- Regras Java executadas: URL de instalação e domínios de login, nomes de arquivos, limites de duração, chamadas desatualizadas e interpolação de voz.
-- Fontes compiladas contra `android-36/android.jar`, com bytecode convertido para Android API 26.
-- APK alinhado e verificado com esquemas de assinatura v2 e v3.
-- Manifesto inspecionado: Android 8+, pacote `com.viewsmidia.player`, API alvo 36, launcher comum e Android TV, sem permissão de armazenamento externo, câmera ou microfone.
-- Verificação física e login incorporado continuam pendentes; o APK não está certificado para operação comercial contínua.
+## Referências
+
+- SDK/assinatura: https://developer.android.com/tools
+- ZXing: https://github.com/zxing/zxing — Apache License 2.0
+- Contrato de pareamento e configuração remota: `online/docs/SUPABASE-APARELHOS.md` no repositório principal.

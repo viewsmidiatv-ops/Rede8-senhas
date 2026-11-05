@@ -20,11 +20,13 @@ import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.WindowManager;
-import android.webkit.CookieManager;
-import android.webkit.SslErrorHandler;
-import android.webkit.WebResourceRequest;
-import android.webkit.WebView;
-import android.webkit.WebViewClient;
+import com.google.zxing.BarcodeFormat;
+import com.google.zxing.qrcode.QRCodeWriter;
+import com.google.zxing.common.BitMatrix;
+
+
+
+
 import android.widget.*;
 import org.json.*;
 import javax.net.ssl.HttpsURLConnection;
@@ -35,14 +37,19 @@ import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-/** Native read-only TV player. Login WebView has no JavaScript/native bridge. */
+/** Native read-only TV player. Pairing uses a short-lived code approved by an administrator. */
 public class MainActivity extends Activity {
+    private static final String DEFAULT_ENDPOINT="https://vhsihfbhxqrxtkyfyebr.supabase.co/functions/v1/tv-device";
     private static final String DEFAULT_SITE="https://rede8-senhas-piloto.grupo-ortocd-0618.chatgpt.site";
     private final Handler ui=new Handler(Looper.getMainLooper());
     private final ScheduledExecutorService network=Executors.newSingleThreadScheduledExecutor();
     private final ExecutorService downloads=Executors.newSingleThreadExecutor();
     private final AtomicBoolean syncing=new AtomicBoolean(false);
-    private ScheduledFuture<?> pollTask;
+    private ScheduledFuture<?> pollTask,pairTask;
+    private volatile String deviceEndpoint=DEFAULT_ENDPOINT;
+    private TokenStore tokens;
+    private boolean pairingMode=false;
+    private TextView pairingStatus;
     private SharedPreferences prefs;
     private volatile String origin="", desiredMedia="", playingId="";
     private volatile int generation=0;
@@ -60,7 +67,7 @@ public class MainActivity extends Activity {
     private FrameLayout mediaFrame;
     private TextView brand,status,code,counter,history,message,clock;
     private VideoView video;
-    private WebView loginView;
+    
     private Bitmap bitmap;
     private ToneGenerator tone;
     private final Runnable advance=new Runnable(){@Override public void run(){playNext();}};
@@ -68,10 +75,10 @@ public class MainActivity extends Activity {
 
     @Override public void onCreate(Bundle state){
         super.onCreate(state);getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);immersive();
-        prefs=getSharedPreferences("views-tv",MODE_PRIVATE);origin=prefs.getString("origin",DEFAULT_SITE);setMediaDir();
+        prefs=getSharedPreferences("views-tv",MODE_PRIVATE);tokens=new TokenStore(this);deviceEndpoint=prefs.getString("deviceEndpoint",DEFAULT_ENDPOINT);origin=prefs.getString("origin",DEFAULT_SITE);setMediaDir();
         tts=new TextToSpeech(this,result->{voiceReady=result==TextToSpeech.SUCCESS;if(voiceReady){int available=tts.setLanguage(new Locale("pt","BR"));if(available<0)speechStatus="Instale uma voz em português no Android.";}else speechStatus="Voz do Android indisponível.";});
         try{tone=new ToneGenerator(AudioManager.STREAM_MUSIC,50);}catch(RuntimeException ignored){}
-        if(prefs.getBoolean("configured",false))openPlayer();else showSetup();ui.post(tick);
+        if(prefs.getBoolean("authorized",false)&&!tokens.get(deviceEndpoint).isEmpty())openPlayer();else showSetup();ui.post(tick);
     }
     private void immersive(){getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY|View.SYSTEM_UI_FLAG_FULLSCREEN|View.SYSTEM_UI_FLAG_HIDE_NAVIGATION|View.SYSTEM_UI_FLAG_LAYOUT_STABLE);}
     private void setMediaDir(){try{byte[] hash=MessageDigest.getInstance("SHA-256").digest(origin.getBytes("UTF-8"));StringBuilder b=new StringBuilder();for(int i=0;i<12;i++)b.append(String.format(Locale.ROOT,"%02x",hash[i]));mediaDir=new File(getFilesDir(),"media-"+b);mediaDir.mkdirs();}catch(Exception e){throw new IllegalStateException(e);}}
@@ -80,28 +87,36 @@ public class MainActivity extends Activity {
     private Button button(String label,Runnable action){Button b=new Button(this);b.setText(label);b.setAllCaps(false);b.setOnClickListener(v->action.run());return b;}
     private LinearLayout column(){LinearLayout l=new LinearLayout(this);l.setOrientation(LinearLayout.VERTICAL);l.setGravity(Gravity.CENTER);return l;}
     private void stopPlayer(){playerMode=false;stopPoll();stopMedia();if(tts!=null)tts.stop();}
+    private void stopPairing(){pairingMode=false;if(pairTask!=null){pairTask.cancel(true);pairTask=null;}}
     private void showSetup(){
-        stopPlayer();generation++;seen=-1;lastSuccess=0;authNeeded=false;
-        LinearLayout layout=column();layout.setPadding(dp(40),dp(16),dp(40),dp(16));layout.setBackgroundColor(Color.rgb(52,46,78));
-        layout.addView(text("Views TV · Piloto Android",26));layout.addView(text("Informe a instalação do cliente. As mídias serão baixadas neste aparelho.",15));
-        EditText url=new EditText(this);url.setSingleLine(true);url.setTextColor(Color.WHITE);url.setText(origin);url.setInputType(android.text.InputType.TYPE_CLASS_TEXT|android.text.InputType.TYPE_TEXT_VARIATION_URI);layout.addView(url,new LinearLayout.LayoutParams(-1,dp(55)));
-        layout.addView(button("Entrar e configurar aparelho",()->{try{String selected=PlayerRules.siteOrigin(url.getText().toString());if(!selected.equals(origin)){origin=selected;setMediaDir();settings=new JSONObject();playlist.clear();mediaSignature="";renderSignature="";}prefs.edit().putString("origin",origin).putBoolean("configured",true).apply();openLogin();}catch(IllegalArgumentException e){new AlertDialog.Builder(this).setMessage(e.getMessage()).setPositiveButton("OK",null).show();}}));
-        layout.addView(button("Abrir player / usar mídias já baixadas",this::openPlayer));
-        layout.addView(text("Primeiro acesso exige login ChatGPT autorizado na instalação.\nNenhuma senha é armazenada pelo aplicativo. Pressione Voltar para abrir as opções.",13));
-        setContentView(layout);url.clearFocus();immersive();
+        stopPairing();stopPlayer();generation++;seen=-1;lastSuccess=0;authNeeded=false;
+        LinearLayout layout=column();layout.setPadding(dp(30),dp(10),dp(30),dp(10));layout.setBackgroundColor(Color.rgb(52,46,78));
+        layout.addView(text("Views TV · Ativação por código",25));layout.addView(text("Autorize esta TV pelo celular ou pelo computador.",14));
+        EditText label=new EditText(this);label.setSingleLine(true);label.setTextColor(Color.WHITE);label.setText(prefs.getString("deviceLabel","TV da recepção"));layout.addView(label,new LinearLayout.LayoutParams(-1,dp(48)));
+        layout.addView(button("Gerar QR code e código de ativação",()->{String name=label.getText().toString().trim();if(name.isEmpty()||name.length()>80){Toast.makeText(this,"Informe um nome de até 80 caracteres.",Toast.LENGTH_LONG).show();return;}prefs.edit().putString("deviceLabel",name).apply();startPairing(name);}));
+        if(!tokens.get(deviceEndpoint).isEmpty())layout.addView(button("Abrir player / continuar mídias locais",this::openPlayer));
+        layout.addView(button("Configurar conexão do cliente",this::configureConnection));
+        layout.addView(text("O código expira em dez minutos. Você não precisa digitar sua conta nesta TV.",13));setContentView(layout);immersive();
     }
-    private void openLogin(){
-        stopPlayer();generation++;seen=-1;lastSuccess=0;
-        LinearLayout layout=column();layout.setBackgroundColor(Color.rgb(52,46,78));LinearLayout actions=new LinearLayout(this);actions.addView(button("Concluir login e abrir TV",()->{CookieManager.getInstance().flush();destroyLogin();openPlayer();}));actions.addView(button("Voltar",()->{destroyLogin();showSetup();}));layout.addView(actions);
-        loginView=new WebView(this);loginView.getSettings().setJavaScriptEnabled(true);loginView.getSettings().setDomStorageEnabled(true);loginView.getSettings().setAllowFileAccess(false);loginView.getSettings().setAllowContentAccess(false);loginView.getSettings().setMixedContentMode(android.webkit.WebSettings.MIXED_CONTENT_NEVER_ALLOW);CookieManager.getInstance().setAcceptCookie(true);
-        loginView.setWebViewClient(new WebViewClient(){
-            @Override public boolean shouldOverrideUrlLoading(WebView view,WebResourceRequest req){return !PlayerRules.loginHost(origin,req.getUrl().toString());}
-            @Override public void onReceivedSslError(WebView view,SslErrorHandler handler,SslError error){handler.cancel();Toast.makeText(MainActivity.this,"Não foi possível validar a conexão segura.",Toast.LENGTH_LONG).show();}
-        });layout.addView(loginView,new LinearLayout.LayoutParams(-1,0,1));setContentView(layout);loginView.loadUrl(origin+"/painel");
+    private void configureConnection(){
+        LinearLayout fields=column();EditText site=new EditText(this),endpoint=new EditText(this);site.setSingleLine(true);endpoint.setSingleLine(true);site.setText(origin);endpoint.setText(deviceEndpoint);fields.addView(text("URL do painel administrativo",13));fields.addView(site);fields.addView(text("URL de conexão do aparelho (Supabase)",13));fields.addView(endpoint);
+        new AlertDialog.Builder(this).setTitle("Conexão do cliente").setView(fields).setNegativeButton("Cancelar",null).setPositiveButton("Salvar",(d,w)->{try{String selected=PlayerRules.siteOrigin(site.getText().toString()),api=PlayerRules.deviceEndpoint(endpoint.getText().toString());if(!selected.equals(origin)||!api.equals(deviceEndpoint)){stopPlayer();stopPairing();generation++;origin=selected;deviceEndpoint=api;setMediaDir();settings=new JSONObject();playlist.clear();mediaSignature="";renderSignature="";prefs.edit().putString("origin",origin).putString("deviceEndpoint",deviceEndpoint).putBoolean("authorized",false).apply();}showSetup();}catch(IllegalArgumentException e){Toast.makeText(this,e.getMessage(),Toast.LENGTH_LONG).show();}}).show();
     }
-    private void destroyLogin(){if(loginView!=null){loginView.stopLoading();loginView.destroy();loginView=null;}}
+    private HttpsURLConnection deviceRequest(String endpoint,String path,String token)throws Exception{
+        HttpsURLConnection c=(HttpsURLConnection)new URL(endpoint+path).openConnection();c.setInstanceFollowRedirects(false);c.setUseCaches(false);c.setRequestProperty("Cache-Control","no-store");c.setRequestProperty("Accept","application/json");c.setConnectTimeout(10000);c.setReadTimeout(15000);if(token!=null&&!token.isEmpty())c.setRequestProperty("Authorization","Bearer "+token);return c;
+    }
+    private void startPairing(String name){
+        stopPlayer();stopPairing();int epoch=++generation;LinearLayout loading=column();loading.setBackgroundColor(Color.rgb(52,46,78));loading.addView(text("Gerando código seguro…",24));setContentView(loading);String endpoint=deviceEndpoint;
+        network.execute(()->{HttpsURLConnection c=null;try{c=deviceRequest(endpoint,"/pair/start",null);c.setRequestMethod("POST");c.setDoOutput(true);c.setRequestProperty("Content-Type","application/json");JSONObject input=new JSONObject();input.put("label",name);input.put("instance","rede8");try(OutputStream out=c.getOutputStream()){out.write(input.toString().getBytes("UTF-8"));}if(c.getResponseCode()!=200)throw new IOException("Não foi possível gerar o código. Confira a conexão ou tente mais tarde.");JSONObject result=new JSONObject(response(c,10000));String token=result.getString("deviceToken");if(!token.matches("[a-f0-9]{64}"))throw new IOException("Resposta inválida");String verification=result.getString("verificationUriComplete");if(!verification.startsWith(origin+"/aparelhos?codigo="))throw new IOException("O painel informado não corresponde a esta instalação.");if(destroyed||epoch!=generation)return;tokens.put(endpoint,token);ui.post(()->{if(epoch==generation){prefs.edit().putBoolean("authorized",false).apply();showPairing(result);}});}catch(Exception e){ui.post(()->{if(epoch==generation){showSetup();new AlertDialog.Builder(this).setTitle("Ativação indisponível").setMessage(e.getMessage()).setPositiveButton("OK",null).show();}});}finally{if(c!=null)c.disconnect();}});
+    }
+    private void showPairing(JSONObject data){
+        stopPairing();pairingMode=true;generation++;LinearLayout layout=column();layout.setBackgroundColor(Color.rgb(52,46,78));layout.addView(text("Autorize esta TV no seu painel",23));LinearLayout row=new LinearLayout(this);row.setGravity(Gravity.CENTER);ImageView qr=new ImageView(this);
+        try{BitMatrix matrix=new QRCodeWriter().encode(data.getString("verificationUriComplete"),BarcodeFormat.QR_CODE,400,400);Bitmap image=Bitmap.createBitmap(400,400,Bitmap.Config.RGB_565);for(int y=0;y<400;y++)for(int x=0;x<400;x++)image.setPixel(x,y,matrix.get(x,y)?Color.BLACK:Color.WHITE);qr.setImageBitmap(image);}catch(Exception ignored){}
+        row.addView(qr,new LinearLayout.LayoutParams(dp(220),dp(220)));LinearLayout words=column();String value=data.optString("code");words.addView(text(value.length()==8?value.substring(0,4)+"-"+value.substring(4):value,36));words.addView(text("Leia o QR code com o celular ou abra\no painel → Aparelhos da TV e informe o código.",16));words.addView(text("Confira o código antes de autorizar.",13));row.addView(words,new LinearLayout.LayoutParams(dp(390),-2));layout.addView(row);pairingStatus=text("Aguardando sua autorização · código válido por dez minutos",14);layout.addView(pairingStatus);layout.addView(button("Voltar / gerar outro código",this::showSetup));setContentView(layout);immersive();startPairPoll();
+    }
+    private void startPairPoll(){if(!resumed||!pairingMode||destroyed||pairTask!=null)return;final int epoch=generation;final String endpoint=deviceEndpoint;pairTask=network.scheduleWithFixedDelay(()->{HttpsURLConnection c=null;try{c=deviceRequest(endpoint,"/pair/status",tokens.get(endpoint));int http=c.getResponseCode();if(http==410||http==401){ui.post(()->{if(epoch==generation){stopPairing();pairingStatus.setText("Código expirado ou inválido. Volte para gerar outro código.");}});return;}if(http!=200)throw new IOException();JSONObject data=new JSONObject(response(c,10000));if("approved".equals(data.optString("status")))ui.post(()->{if(epoch==generation&&resumed){stopPairing();prefs.edit().putBoolean("authorized",true).apply();openPlayer();}});}catch(Exception e){ui.post(()->{if(epoch==generation&&pairingStatus!=null)pairingStatus.setText("Sem conexão · aguardando para conferir a autorização…");});}finally{if(c!=null)c.disconnect();}},0,5,TimeUnit.SECONDS);}
     private void openPlayer(){
-        destroyLogin();stopPlayer();playerMode=true;generation++;seen=-1;lastSuccess=0;events=new JSONArray();counters=new JSONArray();authNeeded=false;renderSignature="";
+        stopPairing();stopPlayer();playerMode=true;generation++;seen=-1;lastSuccess=0;events=new JSONArray();counters=new JSONArray();authNeeded=false;renderSignature="";
         try{File file=new File(mediaDir,"settings.json");if(file.exists())settings=new JSONObject(readFile(file,1024*1024));}catch(Exception ignored){settings=new JSONObject();}
         buildScreen();updateSettings(settings);rebuildPlaylist();renderCalls();startPoll();
     }
@@ -125,20 +140,20 @@ public class MainActivity extends Activity {
     private void renderCalls(){
         if(!playerMode||status==null)return;boolean stale=PlayerRules.stale(lastSuccess,SystemClock.elapsedRealtime());
         java.text.SimpleDateFormat fmt=new java.text.SimpleDateFormat("dd/MM/yyyy  HH:mm",new Locale("pt","BR"));fmt.setTimeZone(TimeZone.getTimeZone("America/Bahia"));clock.setText(settings.optBoolean("showClock",true)?fmt.format(new Date()):"");
-        if(stale){code.setText("—");counter.setText(authNeeded?"Entre novamente nas opções":"Sem conexão para novas chamadas");history.setText("");}
+        if(stale){code.setText("—");counter.setText(authNeeded?"Autorize o aparelho novamente nas opções":"Sem conexão para novas chamadas");history.setText("");}
         else {JSONObject event=events.optJSONObject(events.length()-1);code.setText(event==null?"—":event.optString("code","—"));counter.setText(event==null?"Aguarde a primeira chamada":event.optString("counter",""));StringBuilder h=new StringBuilder();int count=Math.max(1,Math.min(8,settings.optInt("historyCount",5)));for(int i=events.length()-1;i>=Math.max(0,events.length()-count);i--){JSONObject e=events.optJSONObject(i);if(e!=null)h.append(e.optString("code")).append("  ·  ").append(e.optString("counter")).append('\n');}history.setText(h.toString().trim());}
-        status.setText((stale?(authNeeded?"Login necessário":"Sem atualização · mídias locais continuam"):"Conectado · chamadas em tempo real")+(cacheStatus.isEmpty()?"":"  |  "+cacheStatus)+(speechStatus.isEmpty()?"":"  |  "+speechStatus));
+        status.setText((stale?(authNeeded?"Autorização necessária":"Sem atualização · mídias locais continuam"):"Conectado · chamadas em tempo real")+(cacheStatus.isEmpty()?"":"  |  "+cacheStatus)+(speechStatus.isEmpty()?"":"  |  "+speechStatus));
     }
     private void startPoll(){if(!resumed||!playerMode||destroyed||pollTask!=null)return;final int epoch=generation;pollTask=network.scheduleWithFixedDelay(()->poll(epoch),0,2,TimeUnit.SECONDS);}
     private void stopPoll(){if(pollTask!=null){pollTask.cancel(true);pollTask=null;}}
-    private HttpsURLConnection connection(String site,String path,String cookies)throws Exception{
+    private HttpsURLConnection connection(String site,String path,String token)throws Exception{
         if(!path.equals("/api/queue")&&!path.startsWith("/api/media/"))throw new IOException("Endpoint inválido");
-        HttpsURLConnection c=(HttpsURLConnection)new URL(site+path).openConnection();c.setInstanceFollowRedirects(false);c.setUseCaches(false);c.setRequestProperty("Cache-Control","no-store");c.setConnectTimeout(10000);c.setReadTimeout(15000);c.setRequestProperty("Accept",path.equals("/api/queue")?"application/json":"image/*,video/*");if(cookies!=null&&!cookies.isEmpty())c.setRequestProperty("Cookie",cookies);return c;
+        return deviceRequest(site,path.equals("/api/queue")?"/state":path.replace("/api/media/","/media/"),token);
     }
     private String response(HttpsURLConnection c,int limit)throws Exception{try(InputStream in=c.getInputStream();ByteArrayOutputStream out=new ByteArrayOutputStream()){byte[] buffer=new byte[8192];int n;while((n=in.read(buffer))!=-1){if(out.size()+n>limit)throw new IOException("Resposta grande demais");out.write(buffer,0,n);}return out.toString("UTF-8");}}
     private void poll(int epoch){
         if(!playerMode||!resumed||destroyed||epoch!=generation)return;
-        HttpsURLConnection c=null;try{String site=origin;String cookies=CookieManager.getInstance().getCookie(site);c=connection(site,"/api/queue",cookies);int http=c.getResponseCode();if(http==401||http==403||http==302||http==303||!(c.getContentType()!=null&&c.getContentType().contains("application/json"))){ui.post(()->{if(epoch==generation){authNeeded=true;renderCalls();}});return;}if(http!=200)throw new IOException("HTTP "+http);JSONObject snap=new JSONObject(response(c,1024*1024));JSONObject cfg=snap.getJSONObject("settings"),queue=snap.getJSONObject("queue");
+        HttpsURLConnection c=null;try{String site=deviceEndpoint;String cookies=tokens.get(site);c=connection(site,"/api/queue",cookies);int http=c.getResponseCode();if(http==401||http==403||http==302||http==303||!(c.getContentType()!=null&&c.getContentType().contains("application/json"))){ui.post(()->{if(epoch==generation){authNeeded=true;renderCalls();}});return;}if(http!=200)throw new IOException("HTTP "+http);JSONObject snap=new JSONObject(response(c,1024*1024));JSONObject cfg=snap.getJSONObject("settings"),queue=snap.getJSONObject("queue");
             ui.post(()->{if(epoch!=generation||!playerMode||!resumed)return;boolean wasStale=PlayerRules.stale(lastSuccess,SystemClock.elapsedRealtime());authNeeded=false;lastSuccess=SystemClock.elapsedRealtime();updateSettings(cfg);events=queue.optJSONArray("events");if(events==null)events=new JSONArray();long sequence=queue.optLong("eventSequence",0);
                 if(seen>=0&&!wasStale&&sequence>seen){for(int i=0;i<events.length();i++){JSONObject event=events.optJSONObject(i);if(event!=null&&event.optLong("id")>seen)speak(event);}}seen=sequence;renderCalls();syncMedia(epoch,site,cookies);
             });
@@ -190,15 +205,15 @@ public class MainActivity extends Activity {
         if(tts.speak(phrase,TextToSpeech.QUEUE_ADD,params,"call-"+event.optLong("id"))==TextToSpeech.ERROR)speechStatus="Falha na voz Android";else speechStatus="";
     }
     private void showOptions(){
-        new AlertDialog.Builder(this).setTitle("Views TV · Opções").setItems(new String[]{"Continuar reprodução","Entrar / renovar sessão","Escolher voz Android","Testar voz","Configurar URL do cliente","Sair da conta e apagar mídias locais"},(d,index)->{switch(index){case 1:openLogin();break;case 2:chooseVoice();break;case 3:if(voiceReady){tts.setLanguage(new Locale("pt","BR"));String selected=prefs.getString("androidVoice","");if(tts.getVoices()!=null)for(Voice v:tts.getVoices())if(v.getName().equals(selected)){tts.setVoice(v);break;}tts.speak("Senha N zero zero um. Dirija-se ao guichê um.",TextToSpeech.QUEUE_FLUSH,null,"test");}else Toast.makeText(this,"Instale ou ative o mecanismo de voz do Android.",Toast.LENGTH_LONG).show();break;case 4:showSetup();break;case 5:confirmLogout();break;default:immersive();}}).show();
+        new AlertDialog.Builder(this).setTitle("Views TV · Opções").setItems(new String[]{"Continuar reprodução","Ativar / renovar autorização","Escolher voz Android","Testar voz","Configurar URL do cliente","Sair da conta e apagar mídias locais"},(d,index)->{switch(index){case 1:showSetup();break;case 2:chooseVoice();break;case 3:if(voiceReady){tts.setLanguage(new Locale("pt","BR"));String selected=prefs.getString("androidVoice","");if(tts.getVoices()!=null)for(Voice v:tts.getVoices())if(v.getName().equals(selected)){tts.setVoice(v);break;}tts.speak("Senha N zero zero um. Dirija-se ao guichê um.",TextToSpeech.QUEUE_FLUSH,null,"test");}else Toast.makeText(this,"Instale ou ative o mecanismo de voz do Android.",Toast.LENGTH_LONG).show();break;case 4:showSetup();break;case 5:confirmLogout();break;default:immersive();}}).show();
     }
     private void chooseVoice(){
         if(!voiceReady||tts.getVoices()==null){Toast.makeText(this,"Não há mecanismo de voz disponível.",Toast.LENGTH_LONG).show();return;}ArrayList<Voice> values=new ArrayList<>();for(Voice v:tts.getVoices())if(v.getLocale().getLanguage().equals("pt"))values.add(v);Collections.sort(values,(a,b)->a.getName().compareTo(b.getName()));String[] names=new String[values.size()+1];names[0]="Automática — português do Android";for(int i=0;i<values.size();i++)names[i+1]=values.get(i).getName()+(values.get(i).isNetworkConnectionRequired()?" · requer internet":" · local");new AlertDialog.Builder(this).setTitle("Voz deste aparelho").setItems(names,(d,i)->{prefs.edit().putString("androidVoice",i==0?"":values.get(i-1).getName()).apply();if(i==0)tts.setLanguage(new Locale("pt","BR"));else tts.setVoice(values.get(i-1));}).show();
     }
-    private void confirmLogout(){new AlertDialog.Builder(this).setMessage("Sair da conta e apagar os conteúdos baixados neste aparelho?").setNegativeButton("Cancelar",null).setPositiveButton("Sair",(d,w)->{stopPlayer();generation++;CookieManager.getInstance().removeAllCookies(null);CookieManager.getInstance().flush();android.webkit.WebStorage.getInstance().deleteAllData();prefs.edit().putBoolean("configured",false).remove("androidVoice").apply();for(File f:getFilesDir().listFiles()==null?new File[0]:getFilesDir().listFiles())if(f.isDirectory()&&f.getName().startsWith("media-"))for(File child:list(f))child.delete();settings=new JSONObject();playlist.clear();mediaSignature="";renderSignature="";showSetup();}).show();}
-    @Override public void onBackPressed(){if(loginView!=null){if(loginView.canGoBack())loginView.goBack();else{destroyLogin();showSetup();}}else showOptions();}
+    private void confirmLogout(){new AlertDialog.Builder(this).setMessage("Apagar a autorização e os conteúdos locais deste aparelho? A revogação no servidor pode ser feita no painel.").setNegativeButton("Cancelar",null).setPositiveButton("Apagar",(d,w)->{stopPairing();stopPlayer();generation++;tokens.clear();prefs.edit().putBoolean("authorized",false).remove("androidVoice").apply();for(File f:list(getFilesDir()))if(f.isDirectory()&&f.getName().startsWith("media-"))for(File child:list(f))child.delete();settings=new JSONObject();playlist.clear();mediaSignature="";renderSignature="";showSetup();}).show();}
+    @Override public void onBackPressed(){if(pairingMode){showSetup();}else showOptions();}
     @Override public boolean onKeyDown(int key,KeyEvent event){if(key==KeyEvent.KEYCODE_MENU){showOptions();return true;}return super.onKeyDown(key,event);}
-    @Override protected void onResume(){super.onResume();resumed=true;immersive();if(playerMode){seen=-1;lastSuccess=0;startPoll();if(!playlist.isEmpty())playNext();}}
-    @Override protected void onPause(){resumed=false;stopPoll();ui.removeCallbacks(advance);if(video!=null)video.pause();if(tts!=null)tts.stop();super.onPause();}
-    @Override protected void onDestroy(){destroyed=true;resumed=false;stopPlayer();destroyLogin();ui.removeCallbacksAndMessages(null);network.shutdownNow();downloads.shutdownNow();if(tts!=null)tts.shutdown();if(tone!=null){tone.release();tone=null;}super.onDestroy();}
+    @Override protected void onResume(){super.onResume();resumed=true;immersive();if(pairingMode)startPairPoll();if(playerMode){seen=-1;lastSuccess=0;startPoll();if(!playlist.isEmpty())playNext();}}
+    @Override protected void onPause(){resumed=false;stopPoll();if(pairTask!=null){pairTask.cancel(true);pairTask=null;}ui.removeCallbacks(advance);if(video!=null)video.pause();if(tts!=null)tts.stop();super.onPause();}
+    @Override protected void onDestroy(){destroyed=true;resumed=false;stopPairing();stopPlayer();ui.removeCallbacksAndMessages(null);network.shutdownNow();downloads.shutdownNow();if(tts!=null)tts.shutdown();if(tone!=null){tone.release();tone=null;}super.onDestroy();}
 }

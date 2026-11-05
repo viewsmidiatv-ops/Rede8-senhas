@@ -66,3 +66,7 @@ Uploads exigem administrador, autenticação e mesma origem. Arquivos são recon
 Esta é a versão web: depende de internet, sem download offline, pareamento de aparelho, agendamento ou múltiplas playlists. Esses recursos e o APK são etapas futuras. O preview gerenciado esteve indisponível por conflito de servidor, então a revisão visual autenticada e a validação física da TV permanecem pendentes.
 
 - `npm run test:media`: testa os endpoints reais com R2 em Miniflare (identidade simulada apenas no fixture), incluindo autenticação, perfis, origem, assinatura e resposta parcial de vídeo.
+
+## Próxima versão: ativação das TVs
+
+O painel `/aparelhos` e o APK nativo 0.2.0 estão preparados para ativação por QR code/código. A configuração remota ainda aguarda aplicação da migração Supabase: ver [docs/SUPABASE-APARELHOS.md](docs/SUPABASE-APARELHOS.md). Sem as variáveis de integração, o piloto continua utilizando o D1/R2 e o novo formulário fica desabilitado. Não substituir o APK em operação antes de concluir e validar o servidor.

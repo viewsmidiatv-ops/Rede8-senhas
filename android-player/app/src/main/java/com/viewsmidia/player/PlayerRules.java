@@ -22,11 +22,8 @@ public final class PlayerRules {
     public static String announcement(String template, String code, String counter, String service) {
         return template.replace("{senha}",code.replace('-', ' ')).replace("{guiche}",counter).replace("{servico}",service);
     }
-    public static boolean loginHost(String siteOrigin,String url) {
-        try {
-            URI u=new URI(url), s=new URI(siteOrigin); String h=u.getHost();
-            if (!"https".equals(u.getScheme()) || h==null || u.getUserInfo()!=null || (u.getPort()!=-1 && u.getPort()!=443)) return false;
-            return h.equals(s.getHost()) || h.equals("chatgpt.com") || h.equals("auth.openai.com") || h.equals("auth0.openai.com") || h.equals("accounts.google.com") || h.equals("login.microsoftonline.com") || h.equals("appleid.apple.com");
-        } catch(Exception e) { return false; }
+    public static String deviceEndpoint(String input) {
+        try { URI u=new URI(input.trim());String h=u.getHost();if(!"https".equals(u.getScheme())||h==null||!h.endsWith(".supabase.co")||u.getUserInfo()!=null||(u.getPort()!=-1&&u.getPort()!=443)||u.getQuery()!=null||u.getFragment()!=null||!u.getPath().equals("/functions/v1/tv-device"))throw new IllegalArgumentException();return "https://"+h.toLowerCase(java.util.Locale.ROOT)+"/functions/v1/tv-device"; }
+        catch(Exception e){throw new IllegalArgumentException("Use a URL de conexão Supabase exibida na aba Aparelhos.");}
     }
 }

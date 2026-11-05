@@ -14,7 +14,8 @@
     "db:generate": "drizzle-kit generate",
     "test": "node --test tests/queue.test.mjs tests/instance.test.mjs tests/settings.test.mjs tests/indoor.test.mjs",
     "test:db": "node tests/database.test.mjs",
-    "test:media": "node tests/media-storage.test.mjs"
+    "test:media": "node tests/media-storage.test.mjs",
+    "test:devices": "node --test tests/device-handler.test.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",

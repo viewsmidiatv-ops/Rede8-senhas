@@ -1,3 +1,4 @@
+import {deviceBridge,deviceConnection} from './device-bridge';
 import {env} from 'cloudflare:workers';
 import {initialQueue, hydrateQueue, type Actor, type Queue, applyAction, QueueError} from './queue';
 import type {ChatGPTUser} from '../app/chatgpt-auth';
@@ -17,11 +18,17 @@ export async function actorFor(user: ChatGPTUser): Promise<Actor> {
  const role=row?.user_id===user.userId&&row.enabled===1&&(row.role==='admin'||row.role==='operator')?row.role:'visitor';
  return {id:user.userId,email,role};
 }
-export async function loadQueue(): Promise<{queue:Queue;revision:number}> {
+async function legacyQueue(): Promise<{queue:Queue;revision:number}> {
  const db=database();let row=await db.prepare('SELECT revision,payload FROM queue_state WHERE key=1').first<{revision:number;payload:string}>();
  if(!row){await db.prepare('INSERT OR IGNORE INTO queue_state (key,revision,payload) VALUES (1,0,?)').bind(JSON.stringify(initialQueue())).run();row=await db.prepare('SELECT revision,payload FROM queue_state WHERE key=1').first<{revision:number;payload:string}>();}
  if(!row)throw new QueueError(503,'Não foi possível carregar a fila.');
  return {queue:hydrateQueue(JSON.parse(row.payload)),revision:row.revision};
+}
+export async function loadQueue(): Promise<{queue:Queue;revision:number}> {
+ if(!deviceConnection())return legacyQueue();
+ let remote=await deviceBridge('load');
+ if(!remote.exists){const legacy=await legacyQueue();remote=await deviceBridge('seed',legacy);}
+ return {queue:hydrateQueue(remote.queue),revision:remote.revision};
 }
 export async function mutateQueue(action:string,data:Record<string,unknown>,actor:Actor) {
  const db=database();
@@ -29,6 +36,7 @@ export async function mutateQueue(action:string,data:Record<string,unknown>,acto
  // cannot get the same number and counters cannot acquire the same ticket.
  for(let attempt=0;attempt<8;attempt++){
   const {queue,revision}=await loadQueue();const result=applyAction(queue,action,data,actor);
+  if(deviceConnection()){const write=await deviceBridge('cas',{queue,revision});if(write.written)return {result,queue,revision:revision+1};continue;}
   const write=await db.prepare('UPDATE queue_state SET payload=?,revision=revision+1 WHERE key=1 AND revision=?').bind(JSON.stringify(queue),revision).run();
   if(write.meta.changes===1)return {result,queue,revision:revision+1};
  }
