@@ -1,10 +1,10 @@
-# Views TV — piloto Android 0.2.0
+# Views TV — piloto Android 0.2.1
 
-Player de chamadas e mídia indoor com ativação por QR code/código, sem WebView de login. A integração remota usa o projeto Rede8 Senhas no Supabase e o painel administrativo existente. A versão 0.2.0 substitui o login incorporado da 0.1.0 por autorização do aparelho; a validação física de voz, codec e reprodução contínua continua necessária.
+Player de chamadas e mídia indoor com ativação por QR code/código, sem WebView de login. A integração remota usa o projeto Rede8 Senhas no Supabase e o painel administrativo existente. A versão 0.2.1 substitui o login incorporado da 0.1.0 por autorização do aparelho; a validação física de voz, codec e reprodução contínua continua necessária.
 
 ## Instalar e ativar
 
-1. Instale o APK 0.2.0 no Android 8+ (API 26), com a mesma assinatura de desenvolvimento do piloto anterior.
+1. Instale o APK 0.2.1 no Android 8+ (API 26), com a mesma assinatura de desenvolvimento do piloto anterior.
 2. Abra Views TV e informe o nome do aparelho. A conexão da Rede8 já está preenchida. Para outro cliente, configure a URL do painel e a URL Supabase de conexão mostrada na aba Aparelhos.
 3. Selecione Gerar QR code e código de ativação.
 4. No celular ou computador, abra o QR code. Entre no painel com sua conta autorizada, confira o código e aprove o aparelho. Alternativamente, abra `/aparelhos` e digite o código.
@@ -27,7 +27,7 @@ python3 scripts/build-apk.py --sdk /caminho/Android/Sdk
 bash scripts/test.sh
 ```
 
-O script executa AAPT2, javac, D8, zipalign e apksigner. Saída `build/Views-TV-0.2.0-piloto.apk`. Os testes verificam URLs, nomes seguros, limites, tempo de desconexão, textos e geração/decodificação do QR code. Compilação real e assinatura v2/v3 aprovadas. Validação física e pareamento remoto ainda pendentes.
+O script executa AAPT2, javac, D8, zipalign e apksigner. Saída `build/Views-TV-0.2.1-piloto.apk`. Os testes verificam URLs, nomes seguros, limites, tempo de desconexão, textos e geração/decodificação do QR code. Compilação real e assinatura v2/v3 aprovadas. Validação física e pareamento remoto ainda pendentes.
 
 Use a chave privada de desenvolvimento preservada do piloto para atualizar uma instalação existente. Nunca adicione chaves ao Git ou use esta chave de desenvolvimento para distribuição comercial. O build utiliza por padrão `~/.android/debug.keystore`; caminhos alternativos disponíveis em `--keystore`, `--tools` e `--android-jar`.
 
@@ -38,3 +38,13 @@ Não há inicialização automática após ligar, gerenciamento de quiosque, atu
 - SDK/assinatura: https://developer.android.com/tools
 - ZXing: https://github.com/zxing/zxing — Apache License 2.0
 - Contrato de pareamento e configuração remota: `online/docs/SUPABASE-APARELHOS.md` no repositório principal.
+
+## Correção de voz em 0.2.1
+
+O manifesto declara a consulta ao serviço `android.intent.action.TTS_SERVICE`, necessária para detectar mecanismos em Android 11+ quando o app mira API recente. A inicialização é assíncrona, ignora respostas de instâncias antigas e diferencia mecanismo ausente, falha de conexão e ausência de dados de português. Uma lista de vozes vazia não é tratada como ausência de mecanismo quando a síntese padrão funciona.
+
+Em Opções → Mecanismo e ajuda de voz, o usuário pode selecionar o mecanismo instalado, verificar/instalar dados de voz, abrir as configurações Android e reconectar. Ao voltar das configurações o mecanismo é reinicializado. O teste usa a voz escolhida, velocidade e volume configurados. O aplicativo não instala um mecanismo por conta própria: se o aparelho não tiver um mecanismo compatível, é necessário instalar ou habilitar um no Android.
+
+Validação: regras Java incluindo estados de voz, QR roundtrip, compilação, manifesto binário e assinatura. A reprodução física precisa ser testada no aparelho. Vozes disponíveis no navegador do computador não são automaticamente transferidas ao Android; uma voz padronizada online requer integração específica e não foi adicionada nesta correção.
+
+Referência oficial: https://developer.android.com/about/versions/11/behavior-changes-11#tts

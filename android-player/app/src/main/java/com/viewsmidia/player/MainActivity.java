@@ -3,6 +3,8 @@ package com.viewsmidia.player;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.SharedPreferences;
+import android.content.Intent;
+import android.content.ActivityNotFoundException;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
@@ -16,6 +18,7 @@ import android.os.Looper;
 import android.os.SystemClock;
 import android.speech.tts.TextToSpeech;
 import android.speech.tts.Voice;
+import android.speech.tts.UtteranceProgressListener;
 import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.View;
@@ -58,7 +61,8 @@ public class MainActivity extends Activity {
     private JSONObject settings=new JSONObject();
     private JSONArray events=new JSONArray(),counters=new JSONArray();
     private TextToSpeech tts;
-    private boolean voiceReady=false, authNeeded=false, mediaReady=false;
+    private boolean voiceReady=false, voiceInitialized=false, voiceInitializing=false, refreshVoice=false, authNeeded=false, mediaReady=false;
+    private int voiceGeneration=0,voiceLanguage=TextToSpeech.LANG_NOT_SUPPORTED;
     private long seen=-1,lastSuccess=0,lastMediaAttempt=0;
     private String mediaSignature="",renderSignature="",appliedSettings="",speechStatus="",cacheStatus="";
     private int playlistIndex=0;
@@ -76,7 +80,7 @@ public class MainActivity extends Activity {
     @Override public void onCreate(Bundle state){
         super.onCreate(state);getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);immersive();
         prefs=getSharedPreferences("views-tv",MODE_PRIVATE);tokens=new TokenStore(this);deviceEndpoint=prefs.getString("deviceEndpoint",DEFAULT_ENDPOINT);origin=prefs.getString("origin",DEFAULT_SITE);setMediaDir();
-        tts=new TextToSpeech(this,result->{voiceReady=result==TextToSpeech.SUCCESS;if(voiceReady){int available=tts.setLanguage(new Locale("pt","BR"));if(available<0)speechStatus="Instale uma voz em português no Android.";}else speechStatus="Voz do Android indisponível.";});
+        setVolumeControlStream(AudioManager.STREAM_MUSIC);initializeVoice();
         try{tone=new ToneGenerator(AudioManager.STREAM_MUSIC,50);}catch(RuntimeException ignored){}
         if(prefs.getBoolean("authorized",false)&&!tokens.get(deviceEndpoint).isEmpty())openPlayer();else showSetup();ui.post(tick);
     }
@@ -198,22 +202,60 @@ public class MainActivity extends Activity {
             try{BitmapFactory.Options bounds=new BitmapFactory.Options();bounds.inJustDecodeBounds=true;BitmapFactory.decodeFile(file.getAbsolutePath(),bounds);int sample=1;while(bounds.outWidth/sample>1920||bounds.outHeight/sample>1080)sample*=2;BitmapFactory.Options options=new BitmapFactory.Options();options.inSampleSize=sample;bitmap=BitmapFactory.decodeFile(file.getAbsolutePath(),options);if(bitmap==null)throw new IOException("Imagem incompatível");ImageView image=new ImageView(this);image.setScaleType(cover?ImageView.ScaleType.CENTER_CROP:ImageView.ScaleType.FIT_CENTER);image.setImageBitmap(bitmap);mediaFrame.addView(image,new FrameLayout.LayoutParams(-1,-1));ui.postDelayed(advance,PlayerRules.seconds(item.optInt("seconds",15))*1000L);}catch(Exception e){mediaFrame.addView(text("Imagem indisponível",16));ui.postDelayed(advance,3000);}
         }
     }
+    private int installedEngineCount(){return getPackageManager().queryIntentServices(new Intent(TextToSpeech.Engine.INTENT_ACTION_TTS_SERVICE),0).size();}
+    private void initializeVoice(){
+        final int epoch=++voiceGeneration;voiceReady=false;voiceInitialized=false;voiceInitializing=true;speechStatus=VoiceAvailability.message(true,false,0,voiceLanguage);
+        if(tts!=null){tts.shutdown();tts=null;}
+        TextToSpeech.OnInitListener listener=result->ui.post(()->{if(destroyed||epoch!=voiceGeneration)return;voiceInitializing=false;voiceInitialized=result==TextToSpeech.SUCCESS;if(voiceInitialized){
+            tts.setOnUtteranceProgressListener(new UtteranceProgressListener(){public void onStart(String id){}public void onDone(String id){}public void onError(String id){ui.post(()->{if(epoch==voiceGeneration&&!destroyed){speechStatus="Falha ao reproduzir a voz. Verifique os dados e o mecanismo nas opções.";renderCalls();}});}});
+            prepareVoice();
+        }else{speechStatus=VoiceAvailability.message(false,false,installedEngineCount(),voiceLanguage);}renderCalls();});
+        try{String engine=prefs.getString("androidEngine","");tts=engine.isEmpty()?new TextToSpeech(this,listener):new TextToSpeech(this,listener,engine);}catch(RuntimeException e){voiceInitializing=false;speechStatus=VoiceAvailability.message(false,false,installedEngineCount(),voiceLanguage);}
+    }
+    private boolean prepareVoice(){
+        if(!voiceInitialized||tts==null)return false;voiceLanguage=tts.setLanguage(new Locale("pt","BR"));voiceReady=VoiceAvailability.ready(true,voiceLanguage);speechStatus=VoiceAvailability.message(false,true,1,voiceLanguage);if(!voiceReady)return false;
+        JSONObject cfg=settings.optJSONObject("voice");tts.setSpeechRate((float)Math.max(.6,Math.min(1.4,cfg==null?.9:cfg.optDouble("rate",.9))));String selected=prefs.getString("androidVoice","");Set<Voice> values=tts.getVoices();if(values!=null)for(Voice v:values)if(v.getName().equals(selected)){tts.setVoice(v);break;}return true;
+    }
     private void speak(JSONObject event){
-        if(!voiceReady){speechStatus="Voz Android indisponível · verifique as opções";return;}JSONObject voice=settings.optJSONObject("voice"),texts=settings.optJSONObject("texts");if(voice==null||texts==null)return;float volume=(float)Math.max(0,Math.min(1,voice.optDouble("volume",1)));tts.setLanguage(new Locale("pt","BR"));tts.setSpeechRate((float)Math.max(.6,Math.min(1.4,voice.optDouble("rate",.9))));String name=prefs.getString("androidVoice","");Set<Voice> voices=tts.getVoices();if(voices!=null)for(Voice v:voices)if(v.getName().equals(name)){tts.setVoice(v);break;}
+        if(!voiceInitialized||!prepareVoice()){if(!voiceInitializing&&speechStatus.isEmpty())speechStatus=VoiceAvailability.message(false,false,installedEngineCount(),voiceLanguage);return;}
+        JSONObject voice=settings.optJSONObject("voice"),texts=settings.optJSONObject("texts");if(voice==null||texts==null)return;float volume=(float)Math.max(0,Math.min(1,voice.optDouble("volume",1)));
         String template=texts.optString(event.optBoolean("recall")?"recallCall":"nextCall","Senha {senha}, dirija-se ao {guiche}.");String phrase=PlayerRules.announcement(template,event.optString("code"),event.optString("counter"),event.optString("serviceName","Atendimento"));Bundle params=new Bundle();params.putFloat(TextToSpeech.Engine.KEY_PARAM_VOLUME,volume);
         if(volume>0&&tone!=null&&!"none".equals(voice.optString("chime"))){tone.startTone(ToneGenerator.TONE_PROP_BEEP,200);if("double".equals(voice.optString("chime")))ui.postDelayed(()->{if(playerMode&&tone!=null)tone.startTone(ToneGenerator.TONE_PROP_BEEP,200);},250);}
-        if(tts.speak(phrase,TextToSpeech.QUEUE_ADD,params,"call-"+event.optLong("id"))==TextToSpeech.ERROR)speechStatus="Falha na voz Android";else speechStatus="";
+        if(tts.speak(phrase,TextToSpeech.QUEUE_ADD,params,"call-"+event.optLong("id"))==TextToSpeech.ERROR)speechStatus="Falha na voz Android. Verifique o mecanismo nas opções.";
+    }
+    private void testVoice(){
+        if(!voiceInitialized||!prepareVoice()){showVoiceHelp();return;}JSONObject cfg=settings.optJSONObject("voice");float volume=(float)Math.max(0,Math.min(1,cfg==null?1:cfg.optDouble("volume",1)));if(volume==0){Toast.makeText(this,"O volume da voz está em zero nas configurações do painel.",Toast.LENGTH_LONG).show();return;}Bundle params=new Bundle();params.putFloat(TextToSpeech.Engine.KEY_PARAM_VOLUME,volume);if(tts.speak("Senha N zero zero um. Dirija-se ao guichê um.",TextToSpeech.QUEUE_FLUSH,params,"voice-test")==TextToSpeech.ERROR)showVoiceHelp();
     }
     private void showOptions(){
-        new AlertDialog.Builder(this).setTitle("Views TV · Opções").setItems(new String[]{"Continuar reprodução","Ativar / renovar autorização","Escolher voz Android","Testar voz","Configurar URL do cliente","Sair da conta e apagar mídias locais"},(d,index)->{switch(index){case 1:showSetup();break;case 2:chooseVoice();break;case 3:if(voiceReady){tts.setLanguage(new Locale("pt","BR"));String selected=prefs.getString("androidVoice","");if(tts.getVoices()!=null)for(Voice v:tts.getVoices())if(v.getName().equals(selected)){tts.setVoice(v);break;}tts.speak("Senha N zero zero um. Dirija-se ao guichê um.",TextToSpeech.QUEUE_FLUSH,null,"test");}else Toast.makeText(this,"Instale ou ative o mecanismo de voz do Android.",Toast.LENGTH_LONG).show();break;case 4:showSetup();break;case 5:confirmLogout();break;default:immersive();}}).show();
+        new AlertDialog.Builder(this).setTitle("Views TV · Opções").setItems(new String[]{"Continuar reprodução","Ativar / renovar autorização","Escolher voz Android","Testar voz","Configurar URL do cliente","Sair da conta e apagar mídias locais","Mecanismo e ajuda de voz"},(d,index)->{switch(index){case 1:showSetup();break;case 2:chooseVoice();break;case 3:testVoice();break;case 4:showSetup();break;case 5:confirmLogout();break;case 6:showVoiceHelp();break;default:immersive();}}).show();
+    }
+    private void showVoiceHelp(){
+        String detail=voiceInitializing?"O mecanismo ainda está iniciando. Aguarde alguns segundos.":speechStatus;
+        if(detail.isEmpty())detail="A voz está pronta. Você pode escolher outro mecanismo, verificar os dados de português ou reconectar.";
+        LinearLayout content=column();content.setPadding(dp(16),dp(8),dp(16),dp(8));content.addView(text(detail+"\n\nO aparelho precisa de um mecanismo de síntese instalado e habilitado, com dados de português. Depois de instalar ou alterar a voz, volte ao aplicativo e reconecte.",14));ScrollView scroll=new ScrollView(this);scroll.addView(content);
+        AlertDialog dialog=new AlertDialog.Builder(this).setTitle("Mecanismo e ajuda de voz").setView(scroll).setNegativeButton("Voltar",null).create();
+        content.addView(button("Selecionar mecanismo instalado",()->{dialog.dismiss();chooseEngine();}));
+        content.addView(button("Verificar dados de voz",()->{dialog.dismiss();openVoiceActivity(TextToSpeech.Engine.ACTION_CHECK_TTS_DATA);}));
+        content.addView(button("Instalar dados de voz",()->{dialog.dismiss();openVoiceActivity(TextToSpeech.Engine.ACTION_INSTALL_TTS_DATA);}));
+        content.addView(button("Abrir configurações do Android",()->{dialog.dismiss();refreshVoice=true;try{startActivity(new Intent(android.provider.Settings.ACTION_SETTINGS));}catch(ActivityNotFoundException e){Toast.makeText(this,"Abra as configurações do Android pelo controle do aparelho.",Toast.LENGTH_LONG).show();}}));
+        content.addView(button("Reconectar mecanismo de voz",()->{dialog.dismiss();initializeVoice();}));dialog.show();
+    }
+
+    private void openVoiceActivity(String action){
+        Intent intent=new Intent(action);String engine=prefs.getString("androidEngine","");if(!engine.isEmpty())intent.setPackage(engine);refreshVoice=true;try{startActivity(intent);}catch(ActivityNotFoundException e){Toast.makeText(this,"Nenhum verificador ou instalador de voz foi encontrado. Abra as configurações ou a loja do aparelho para instalar um mecanismo de síntese.",Toast.LENGTH_LONG).show();}
+    }
+    private void chooseEngine(){
+        List<TextToSpeech.EngineInfo> engines=tts==null?new ArrayList<>():tts.getEngines();if(engines==null||engines.isEmpty()){new AlertDialog.Builder(this).setTitle("Nenhum mecanismo encontrado").setMessage("Instale ou habilite um mecanismo de síntese de voz em português nas configurações ou na loja do aparelho. A instalação dos dados exige um mecanismo instalado.").setPositiveButton("Configurações Android",(d,w)->{refreshVoice=true;try{startActivity(new Intent(android.provider.Settings.ACTION_SETTINGS));}catch(ActivityNotFoundException ignored){}}).setNegativeButton("Voltar",null).show();return;}
+        String[] names=new String[engines.size()+1];names[0]="Usar o mecanismo padrão do Android";for(int i=0;i<engines.size();i++)names[i+1]=engines.get(i).label;
+        new AlertDialog.Builder(this).setTitle("Mecanismo de voz").setItems(names,(d,i)->{prefs.edit().putString("androidEngine",i==0?"":engines.get(i-1).name).remove("androidVoice").apply();initializeVoice();}).show();
     }
     private void chooseVoice(){
-        if(!voiceReady||tts.getVoices()==null){Toast.makeText(this,"Não há mecanismo de voz disponível.",Toast.LENGTH_LONG).show();return;}ArrayList<Voice> values=new ArrayList<>();for(Voice v:tts.getVoices())if(v.getLocale().getLanguage().equals("pt"))values.add(v);Collections.sort(values,(a,b)->a.getName().compareTo(b.getName()));String[] names=new String[values.size()+1];names[0]="Automática — português do Android";for(int i=0;i<values.size();i++)names[i+1]=values.get(i).getName()+(values.get(i).isNetworkConnectionRequired()?" · requer internet":" · local");new AlertDialog.Builder(this).setTitle("Voz deste aparelho").setItems(names,(d,i)->{prefs.edit().putString("androidVoice",i==0?"":values.get(i-1).getName()).apply();if(i==0)tts.setLanguage(new Locale("pt","BR"));else tts.setVoice(values.get(i-1));}).show();
+        if(!voiceInitialized||!prepareVoice()){showVoiceHelp();return;}ArrayList<Voice> values=new ArrayList<>();Set<Voice> available=tts.getVoices();if(available!=null)for(Voice v:available)if(v.getLocale().getLanguage().equals("pt"))values.add(v);Collections.sort(values,(a,b)->a.getName().compareTo(b.getName()));String[] names=new String[values.size()+1];names[0]="Automática — português do mecanismo";for(int i=0;i<values.size();i++)names[i+1]=values.get(i).getName()+(values.get(i).isNetworkConnectionRequired()?" · requer internet":" · local");new AlertDialog.Builder(this).setTitle("Voz deste aparelho").setItems(names,(d,i)->{prefs.edit().putString("androidVoice",i==0?"":values.get(i-1).getName()).apply();prepareVoice();}).show();
     }
     private void confirmLogout(){new AlertDialog.Builder(this).setMessage("Apagar a autorização e os conteúdos locais deste aparelho? A revogação no servidor pode ser feita no painel.").setNegativeButton("Cancelar",null).setPositiveButton("Apagar",(d,w)->{stopPairing();stopPlayer();generation++;tokens.clear();prefs.edit().putBoolean("authorized",false).remove("androidVoice").apply();for(File f:list(getFilesDir()))if(f.isDirectory()&&f.getName().startsWith("media-"))for(File child:list(f))child.delete();settings=new JSONObject();playlist.clear();mediaSignature="";renderSignature="";showSetup();}).show();}
     @Override public void onBackPressed(){if(pairingMode){showSetup();}else showOptions();}
     @Override public boolean onKeyDown(int key,KeyEvent event){if(key==KeyEvent.KEYCODE_MENU){showOptions();return true;}return super.onKeyDown(key,event);}
-    @Override protected void onResume(){super.onResume();resumed=true;immersive();if(pairingMode)startPairPoll();if(playerMode){seen=-1;lastSuccess=0;startPoll();if(!playlist.isEmpty())playNext();}}
+    @Override protected void onResume(){super.onResume();resumed=true;immersive();if(refreshVoice){refreshVoice=false;initializeVoice();}if(pairingMode)startPairPoll();if(playerMode){seen=-1;lastSuccess=0;startPoll();if(!playlist.isEmpty())playNext();}}
     @Override protected void onPause(){resumed=false;stopPoll();if(pairTask!=null){pairTask.cancel(true);pairTask=null;}ui.removeCallbacks(advance);if(video!=null)video.pause();if(tts!=null)tts.stop();super.onPause();}
     @Override protected void onDestroy(){destroyed=true;resumed=false;stopPairing();stopPlayer();ui.removeCallbacksAndMessages(null);network.shutdownNow();downloads.shutdownNow();if(tts!=null)tts.shutdown();if(tone!=null){tone.release();tone=null;}super.onDestroy();}
 }

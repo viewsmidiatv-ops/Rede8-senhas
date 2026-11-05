@@ -28,7 +28,7 @@ if not key.exists():
  key.parent.mkdir(parents=True,exist_ok=True)
  run('keytool','-genkeypair','-keystore',key,'-storepass','android','-keypass','android','-alias','androiddebugkey','-dname','CN=Android Debug,O=Android,C=US','-keyalg','RSA','-keysize','2048','-validity','10000')
  os.chmod(key,0o600)
-output=build/'Views-TV-0.2.0-piloto.apk'
+output=build/'Views-TV-0.2.1-piloto.apk'
 run(tools/'apksigner','sign','--ks',key,'--ks-key-alias','androiddebugkey','--ks-pass','pass:android','--key-pass','pass:android','--out',output,build/'aligned.apk')
 run(tools/'apksigner','verify','--verbose',output)
 run(tools/'aapt2','dump','badging',output)
