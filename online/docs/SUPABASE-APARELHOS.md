@@ -30,7 +30,7 @@ Caminho futuro: substituir também a autenticação administrativa e os vínculo
 
 - 25 testes de regras existentes.
 - Integração real D1/Miniflare e R2, sem regressões.
-- 7 testes do handler: projeção pública, autenticação, hash de credenciais, escopo de instalação, mídia fora da playlist e expiração.
+- 8 testes do handler: projeção pública, autenticação, hash de credenciais, escopo de instalação, mídia fora da playlist e expiração.
 - Migração executada em Postgres embarcado PGlite: tabelas, RLS, uso único, revogação, seed idempotente, revisão atômica, limites e bloqueio dos papéis anon/authenticated.
 - TypeScript e build web.
 - Regras Java, QR code gerado e decodificado por ZXing, compilação do APK Android, alinhamento e assinatura v2/v3.
@@ -38,3 +38,5 @@ Caminho futuro: substituir também a autenticação administrativa e os vínculo
 Comandos: `node --test tests/device-handler.test.mjs`; para o teste SQL, instale `@electric-sql/pglite@0.3.14` em ambiente de testes e execute `PGLITE_MODULE=/caminho/node_modules/@electric-sql/pglite/dist/index.js node tests/device-schema.test.mjs`.
 
 Validação física no aparelho Android e revisão visual autenticada continuam pendentes. Os testes automatizados não certificam codecs ou o mecanismo de voz instalado no equipamento.
+
+Validação no Supabase remoto: 17 verificações do fluxo real aprovadas, cobrindo inicialização da fila, aprovação de uso único, leitura limitada, recusa de alterações com revisão antiga e revogação imediata. Expiração confirmada em solicitação de teste. Upload autenticado de uma imagem de teste e verificação de existência no bucket privado aprovados; a verificação usa POST e leitura interna limitada a um byte, sem depender de HEAD. A migração inicial preservou 13 senhas e 3 guichês. O aparelho de teste foi revogado ao concluir.
